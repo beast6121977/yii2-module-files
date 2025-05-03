@@ -38,7 +38,7 @@ $doc_contents = [
         <?php } ?>
 
         <a data-title="<?= $model->title ?>" href="<?= $model->href ?>" data-hash="<?= $model->hash ?>"
-           class="f12-file-object" style="background-image: url(<?= $model->href ?>)" title=" <?= $model->title ?>"
+           class="f12-file-object" style="background-image: url(<?= $model->getPreviewWebPath(280, true) ?>)"
            data-lightbox="<?= $lightboxKey ?>"></a>
 
 
