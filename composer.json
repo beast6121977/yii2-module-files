@@ -1,5 +1,5 @@
 {
-  "name": "floor12/yii2-module-files",
+  "name": "beast6121977/yii2-module-files",
   "description": "Yii2 module to upload and manage files to your models.",
   "type": "yii2-extension",
   "minimum-stability": "stable",
@@ -39,12 +39,12 @@
   },
   "autoload": {
     "psr-4": {
-      "floor12\\files\\": "src"
+      "beast6121977\\files\\": "src"
     }
   },
   "autoload-dev": {
     "psr-4": {
-      "floor12\\files\\tests\\": "tests"
+      "beast6121977\\files\\tests\\": "tests"
     }
   },
   "repositories": [
