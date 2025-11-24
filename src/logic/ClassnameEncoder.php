@@ -6,7 +6,7 @@
  * Time: 13:28
  */
 
-namespace floor12\files\logic;
+namespace modules\files\logic;
 
 /**
  * Class ClassnameEncoder

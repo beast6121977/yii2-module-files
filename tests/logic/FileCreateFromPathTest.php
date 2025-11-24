@@ -6,13 +6,13 @@
  * Time: 12:45
  */
 
-namespace floor12\files\tests\logic;
+namespace modules\files\tests\logic;
 
 
-use floor12\files\logic\FileCreateFromPath;
-use floor12\files\models\File;
-use floor12\files\models\FileType;
-use floor12\files\tests\TestCase;
+use modules\files\logic\FileCreateFromPath;
+use modules\files\models\File;
+use modules\files\models\FileType;
+use modules\files\tests\TestCase;
 use yii\base\ErrorException;
 
 class FileCreateFromPathTest extends TestCase

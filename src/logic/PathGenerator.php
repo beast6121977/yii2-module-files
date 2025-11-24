@@ -6,7 +6,7 @@
  * Time: 13:34
  */
 
-namespace floor12\files\logic;
+namespace modules\files\logic;
 
 
 use yii\base\ErrorException;

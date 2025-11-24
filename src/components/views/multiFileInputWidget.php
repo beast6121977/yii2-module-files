@@ -17,7 +17,7 @@
  *
  */
 
-use floor12\files\assets\IconHelper;
+use modules\files\assets\IconHelper;
 use yii\bootstrap\BootstrapPluginAsset;
 use yii\db\ActiveRecord;
 use yii\helpers\Html;

@@ -6,12 +6,12 @@
  * Time: 8:32
  */
 
-namespace floor12\files\controllers;
+namespace modules\files\controllers;
 
 
-use floor12\files\models\File;
-use floor12\files\models\FileType;
-use floor12\files\models\VideoStatus;
+use modules\files\models\File;
+use modules\files\models\FileType;
+use modules\files\models\VideoStatus;
 use Throwable;
 use Yii;
 use yii\console\Controller;

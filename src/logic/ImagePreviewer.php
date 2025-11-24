@@ -1,10 +1,10 @@
 <?php
 
 
-namespace floor12\files\logic;
+namespace modules\files\logic;
 
-use floor12\files\components\SimpleImage;
-use floor12\files\models\File;
+use modules\files\components\SimpleImage;
+use modules\files\models\File;
 use Yii;
 use yii\base\ErrorException;
 

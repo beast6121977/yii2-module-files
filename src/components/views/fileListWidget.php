@@ -15,9 +15,8 @@
  * @var $files File[]
  */
 
-use floor12\files\assets\IconHelper;
-use floor12\files\models\File;
-use yii\helpers\Html;
+use modules\files\assets\IconHelper;
+use modules\files\models\File;
 use yii\helpers\Url;
 use yii\web\View;
 

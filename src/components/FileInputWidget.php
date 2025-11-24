@@ -6,10 +6,10 @@
  * Time: 16:00
  */
 
-namespace floor12\files\components;
+namespace modules\files\components;
 
-use floor12\files\assets\FileInputWidgetAsset;
-use floor12\files\logic\ClassnameEncoder;
+use modules\files\assets\FileInputWidgetAsset;
+use modules\files\logic\ClassnameEncoder;
 use Yii;
 use yii\helpers\Url;
 use yii\jui\InputWidget;

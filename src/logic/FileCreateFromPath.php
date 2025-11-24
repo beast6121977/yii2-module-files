@@ -6,11 +6,11 @@
  * Time: 8:43
  */
 
-namespace floor12\files\logic;
+namespace modules\files\logic;
 
 
-use floor12\files\components\SimpleImage;
-use floor12\files\models\FileType;
+use modules\files\components\SimpleImage;
+use modules\files\models\FileType;
 use yii\base\ErrorException;
 use yii\db\ActiveRecordInterface;
 

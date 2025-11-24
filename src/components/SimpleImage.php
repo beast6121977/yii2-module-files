@@ -6,11 +6,10 @@
  * Time: 21:21
  */
 
-namespace floor12\files\components;
+namespace modules\files\components;
 
 
 use yii\base\ErrorException;
-use function PHPUnit\Framework\fileExists;
 
 class SimpleImage
 {

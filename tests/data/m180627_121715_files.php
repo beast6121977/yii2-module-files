@@ -1,5 +1,5 @@
 <?php
-namespace floor12\files\tests\data;
+namespace modules\files\tests\data;
 
 use yii\db\Migration;
 

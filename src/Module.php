@@ -6,7 +6,7 @@
  * Time: 14:45
  */
 
-namespace floor12\files;
+namespace modules\files;
 
 use Yii;
 use yii\db\Connection;
@@ -24,7 +24,7 @@ class Module extends \yii\base\Module
     /**
      * @inheritdoc
      */
-    public $controllerNamespace = 'floor12\files\controllers';
+    public $controllerNamespace = 'modules\files\controllers';
 
     /** Путь к файловому хранилищу
      * @var string
@@ -88,7 +88,7 @@ class Module extends \yii\base\Module
         $i18n->translations['files'] = [
             'class' => 'yii\i18n\PhpMessageSource',
             'sourceLanguage' => 'en-US',
-            'basePath' => '@vendor/floor12/yii2-module-files/src/messages',
+            'basePath' => '@modules/files/src/messages',
         ];
     }
 

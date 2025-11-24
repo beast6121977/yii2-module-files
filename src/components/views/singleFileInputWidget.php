@@ -1,28 +1,8 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: floor12
- * Date: 31.12.2017
- * Time: 16:10
- *
- * @var $this View
- * @var $uploadButtonText string
- * @var $uploadButtonClass string
- * @var $block_id integer
- * @var $attribute string
- * @var $scenario string
- * @var $model ActiveRecord
- * @var $ratio float
- * @var $name string
- * @var $value \floor12\files\models\File
- *
- */
 
-use floor12\files\assets\IconHelper;
-use yii\bootstrap\BootstrapPluginAsset;
-use yii\db\ActiveRecord;
+use modules\files\assets\IconHelper;
+use yii\bootstrap5\BootstrapPluginAsset;
 use yii\helpers\Html;
-use yii\web\View;
 
 BootstrapPluginAsset::register($this);
 
@@ -47,7 +27,7 @@ if (YII_ENV == 'test') // This code is only for testing
     </button>
     <?= Html::hiddenInput($name ?: (new ReflectionClass($model))->getShortName() . "[{$attribute}_ids][]", null) ?>
     <div class="floor12-files-widget-list">
-        <?php if ($value ?? $model->$attribute) echo $this->render('@vendor/floor12/yii2-module-files/src/views/default/_single', [
+        <?php if ($value ?? $model->$attribute) echo $this->render('@modules/files/views/default/_single', [
             'model' => $value ?? $model->$attribute,
             'ratio' => $ratio,
             'name' => $name

@@ -6,9 +6,9 @@
  * Time: 12:23
  */
 
-namespace floor12\files\tests\data;
+namespace modules\files\tests\data;
 
-use  \yii\db\ActiveRecord;
+use yii\db\ActiveRecord;
 
 class TestModel extends ActiveRecord
 {

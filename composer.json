@@ -39,12 +39,12 @@
   },
   "autoload": {
     "psr-4": {
-      "beast6121977\\files\\": "src"
+      "modules\\files\\": "src"
     }
   },
   "autoload-dev": {
     "psr-4": {
-      "beast6121977\\files\\tests\\": "tests"
+      "modules\\files\\tests\\": "tests"
     }
   },
   "repositories": [

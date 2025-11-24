@@ -1,16 +1,9 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: floor12
- * Date: 23.06.2016
- * Time: 11:23
- */
-
-namespace floor12\files\models;
+namespace modules\files\models;
 
 
 use ErrorException;
-use floor12\files\assets\IconHelper;
+use modules\files\assets\IconHelper;
 use Yii;
 use yii\db\ActiveRecord;
 use yii\helpers\Url;
@@ -280,39 +273,6 @@ class File extends ActiveRecord
         parent::afterDelete();
     }
 
-    /**
-     * Method to read files from any mime types
-     * @return bool
-     */
-
-//    public function imageCreateFromAny()
-//    {
-//        $type = exif_imagetype($this->rootPath);
-//        $allowedTypes = array(
-//            1, // [] gif
-//            2, // [] jpg
-//            3, // [] png
-//            6   // [] bmp
-//        );
-//        if (!in_array($type, $allowedTypes)) {
-//            return false;
-//        }
-//        switch ($type) {
-//            case 1 :
-//                $im = imageCreateFromGif($this->rootPath);
-//                break;
-//            case 2 :
-//                $im = imageCreateFromJpeg($this->rootPath);
-//                break;
-//            case 3 :
-//                $im = imageCreateFromPng($this->rootPath);
-//                break;
-//            case 6 :
-//                $im = imageCreateFromBmp($this->rootPath);
-//                break;
-//        }
-//        return $im;
-//    }
 
     /**
      * Delete all files

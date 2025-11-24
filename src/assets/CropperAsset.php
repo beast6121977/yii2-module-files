@@ -6,7 +6,7 @@
  * and open the template in the editor.
  */
 
-namespace floor12\files\assets;
+namespace modules\files\assets;
 
 use yii\web\AssetBundle;
 

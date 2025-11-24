@@ -1,10 +1,10 @@
 <?php
 
-namespace floor12\files\actions;
+namespace modules\files\actions;
 
-use floor12\files\components\SimpleImage;
-use floor12\files\models\File;
-use floor12\files\models\FileType;
+use modules\files\components\SimpleImage;
+use modules\files\models\File;
+use modules\files\models\FileType;
 use Yii;
 use yii\base\Action;
 use yii\web\NotFoundHttpException;

@@ -6,13 +6,13 @@
  * Time: 12:45
  */
 
-namespace floor12\files\tests\logic;
+namespace modules\files\tests\logic;
 
 
 use ArgumentCountError;
 use ErrorException;
-use floor12\files\logic\PathGenerator;
-use floor12\files\tests\TestCase;
+use modules\files\logic\PathGenerator;
+use modules\files\tests\TestCase;
 
 class PathGeneratorTest extends TestCase
 {

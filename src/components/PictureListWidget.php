@@ -1,9 +1,9 @@
 <?php
 
-namespace floor12\files\components;
+namespace modules\files\components;
 
-use floor12\files\assets\LightboxAsset;
-use floor12\files\models\File;
+use modules\files\assets\LightboxAsset;
+use modules\files\models\File;
 use yii\base\Widget;
 use yii\helpers\Html;
 

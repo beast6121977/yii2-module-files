@@ -6,11 +6,11 @@
  * Time: 12:45
  */
 
-namespace floor12\files\tests\logic;
+namespace modules\files\tests\logic;
 
 
-use floor12\files\logic\ClassnameEncoder;
-use floor12\files\tests\TestCase;
+use modules\files\logic\ClassnameEncoder;
+use modules\files\tests\TestCase;
 
 class ClassnameEncoderTest extends TestCase
 {

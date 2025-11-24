@@ -6,11 +6,11 @@
  * Time: 18:41
  */
 
-namespace floor12\files\logic;
+namespace modules\files\logic;
 
-use floor12\files\components\SimpleImage;
-use floor12\files\models\File;
-use floor12\files\models\FileType;
+use modules\files\components\SimpleImage;
+use modules\files\models\File;
+use modules\files\models\FileType;
 use yii\base\ErrorException;
 
 class FileResize

@@ -6,11 +6,11 @@
  * Time: 19:37
  */
 
-namespace floor12\files\logic;
+namespace modules\files\logic;
 
 
-use floor12\files\models\File;
-use floor12\files\models\FileType;
+use modules\files\models\File;
+use modules\files\models\FileType;
 use Yii;
 use yii\base\ErrorException;
 use yii\web\BadRequestHttpException;

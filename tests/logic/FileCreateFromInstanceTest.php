@@ -6,13 +6,13 @@
  * Time: 12:45
  */
 
-namespace floor12\files\tests\logic;
+namespace modules\files\tests\logic;
 
 
 use ArgumentCountError;
-use floor12\files\logic\FileCreateFromInstance;
-use floor12\files\tests\data\TestModel;
-use floor12\files\tests\TestCase;
+use modules\files\logic\FileCreateFromInstance;
+use modules\files\tests\data\TestModel;
+use modules\files\tests\TestCase;
 use yii\web\BadRequestHttpException;
 use yii\web\UploadedFile;
 

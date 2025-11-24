@@ -1,20 +1,12 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: floor12
- * Date: 31.12.2017
- * Time: 15:14
- */
-
-namespace floor12\files\components;
+namespace modules\files\components;
 
 
-use floor12\files\models\File;
+use modules\files\models\File;
 use Yii;
 use yii\base\Behavior;
 use yii\base\ErrorException;
 use yii\db\ActiveRecord;
-use yii\db\Expression;
 use yii\validators\Validator;
 
 class FileBehaviour extends Behavior
@@ -24,6 +16,12 @@ class FileBehaviour extends Behavior
      * @var array
      */
     public $attributes = [];
+
+    /** Базовый класс для хранения в БД. Если указан, будет использоваться вместо className().
+     *  Полезно когда backend и frontend модели наследуют один базовый класс.
+     * @var string|null
+     */
+    public $baseClass = null;
 
     /** В этот массив помещаются id связанных файлов с текущей моделью для последующейго сохранения.
      * @var array
@@ -45,6 +43,15 @@ class FileBehaviour extends Behavior
 
     protected $cachedFiles = [];
 
+    /**
+     * Возвращает имя класса для сохранения в БД.
+     * Если указан baseClass, возвращает его, иначе возвращает className() владельца.
+     * @return string
+     */
+    public function getModelClass(): string
+    {
+        return $this->baseClass ?? $this->owner->className();
+    }
 
     /**
      * Метод сохранения в базу связей с файлами. Вызывается после сохранения основной модели AR.
@@ -58,12 +65,11 @@ class FileBehaviour extends Behavior
         if ($this->_values) {
 
             foreach ($this->_values as $field => $ids) {
-
                 Yii::$app->db->createCommand()->update(
                     "{{%file}}",
                     ['object_id' => 0],
                     [
-                        'class' => $this->owner->className(),
+                        'class' => $this->getModelClass(),
                         'object_id' => $this->owner->id,
                         'field' => $field,
                     ]
@@ -81,7 +87,6 @@ class FileBehaviour extends Behavior
                             throw new ErrorException('Невозможно обновить объект File.');
                         }
                     }
-
                 }
             }
         }
@@ -90,7 +95,7 @@ class FileBehaviour extends Behavior
     public function filesDelete()
     {
         File::deleteAll([
-            'class' => $this->owner->className(),
+            'class' => $this->getModelClass(),
             'object_id' => $this->owner->id,
         ]);
     }
@@ -220,7 +225,7 @@ class FileBehaviour extends Behavior
                             [
                                 'object_id' => $this->owner->id,
                                 'field' => $att_name,
-                                'class' => $this->owner->className()
+                                'class' => $this->getModelClass()
                             ])
                         ->orderBy('ordering ASC')
                         ->all();
@@ -230,7 +235,7 @@ class FileBehaviour extends Behavior
                             [
                                 'object_id' => $this->owner->id,
                                 'field' => $att_name,
-                                'class' => $this->owner->className()
+                                'class' => $this->getModelClass()
                             ])
                         ->orderBy('ordering ASC')
                         ->one();

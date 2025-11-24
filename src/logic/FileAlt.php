@@ -6,10 +6,10 @@
  * Time: 10:39
  */
 
-namespace floor12\files\logic;
+namespace modules\files\logic;
 
 
-use floor12\files\models\File;
+use modules\files\models\File;
 use yii\web\BadRequestHttpException;
 use yii\web\NotFoundHttpException;
 

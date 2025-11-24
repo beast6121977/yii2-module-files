@@ -1,6 +1,6 @@
 <?php
 
-namespace floor12\files\assets;
+namespace modules\files\assets;
 
 use yii\web\AssetBundle;
 

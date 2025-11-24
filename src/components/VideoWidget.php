@@ -1,11 +1,11 @@
 <?php
 
 
-namespace floor12\files\components;
+namespace modules\files\components;
 
 
-use floor12\files\models\File;
-use floor12\files\models\FileType;
+use modules\files\models\File;
+use modules\files\models\FileType;
 use yii\base\Widget;
 use yii\helpers\Html;
 

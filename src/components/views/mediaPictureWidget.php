@@ -8,7 +8,7 @@
  * @var $alt string
  */
 
-use floor12\files\models\File;
+use modules\files\models\File;
 use yii\web\View;
 
 ?>

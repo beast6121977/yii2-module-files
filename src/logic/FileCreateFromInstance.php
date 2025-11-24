@@ -6,11 +6,11 @@
  * Time: 12:56
  */
 
-namespace floor12\files\logic;
+namespace modules\files\logic;
 
-use floor12\files\components\SimpleImage;
-use floor12\files\models\File;
-use floor12\files\models\FileType;
+use modules\files\components\SimpleImage;
+use modules\files\models\File;
+use modules\files\models\FileType;
 use Yii;
 use yii\base\ErrorException;
 use yii\web\BadRequestHttpException;
@@ -68,7 +68,15 @@ class FileCreateFromInstance
         $this->_model = new File();
         $this->_model->created = time();
         $this->_model->field = $this->_attribute;
-        $this->_model->class = $data['modelClass'];
+        
+        // Используем baseClass из behavior, если он указан, иначе используем modelClass
+        $modelClass = $data['modelClass'];
+        if (isset($this->_owner->behaviors['files']) && 
+            isset($this->_owner->behaviors['files']->baseClass) && 
+            $this->_owner->behaviors['files']->baseClass) {
+            $modelClass = $this->_owner->behaviors['files']->baseClass;
+        }
+        $this->_model->class = $modelClass;
 
         $this->_model->filename = new PathGenerator(Yii::$app->getModule('files')->storageFullPath) . '.' . $this->_instance->extension;
         $this->_model->title = $this->_instance->name;
