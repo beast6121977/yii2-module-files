@@ -66,7 +66,7 @@ class FileBehaviour extends Behavior
 
             foreach ($this->_values as $field => $ids) {
                 Yii::$app->db->createCommand()->update(
-                    "{{%file}}",
+                    "{{%file_module}}",
                     ['object_id' => 0],
                     [
                         'class' => $this->getModelClass(),
