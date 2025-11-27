@@ -12,7 +12,7 @@ class m230602_185211_add_alt_to_file extends Migration
      */
     public function safeUp(): void
     {
-        $this->addColumn('file', 'alt', $this->string(512)->null());
+        $this->addColumn('{{%file_module}}', 'alt', $this->text()->null());
     }
 
     /**
@@ -20,6 +20,6 @@ class m230602_185211_add_alt_to_file extends Migration
      */
     public function safeDown(): void
     {
-        $this->dropColumn('file', 'alt');
+        $this->dropColumn('{{%file_module}}', 'alt');
     }
 }

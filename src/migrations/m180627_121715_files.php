@@ -13,22 +13,22 @@ class m180627_121715_files extends Migration
         }
 
         $this->createTable(
-            '{{%file}}',
+            '{{%file_module}}',
             [
                 'id' => $this->primaryKey(11),
-                'class' => $this->string(255)->notNull(),
-                'field' => $this->string(255)->notNull(),
+                'class' => $this->text()->notNull(),
+                'field' => $this->text()->notNull(),
                 'object_id' => $this->integer(11)->notNull()->defaultValue(0),
-                'title' => $this->string(255)->notNull(),
-                'filename' => $this->string(255)->notNull(),
-                'content_type' => $this->string(255)->notNull(),
+                'title' => $this->text()->notNull(),
+                'filename' => $this->text()->notNull(),
+                'content_type' => $this->text()->notNull(),
                 'type' => $this->integer(1)->notNull(),
                 'video_status' => $this->integer(1)->null()->defaultValue(null),
                 'ordering' => $this->integer(11)->notNull()->defaultValue(0),
                 'created' => $this->integer(11)->notNull(),
                 'user_id' => $this->integer(11)->null(),
                 'size' => $this->integer(20)->notNull(),
-                'hash' => $this->string(255)->null(),
+                'hash' => $this->text()->null(),
             ], $tableOptions
         );
     }
@@ -36,6 +36,6 @@ class m180627_121715_files extends Migration
     public function safeDown()
     {
 
-        $this->dropTable('{{%file}}');
+        $this->dropTable('{{%file_module}}');
     }
 }

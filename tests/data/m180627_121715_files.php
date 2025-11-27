@@ -14,7 +14,7 @@ class m180627_121715_files extends Migration
         }
 
         $this->createTable(
-            '{{%file}}',
+            '{{%file_module}}',
             [
                 'id' => $this->primaryKey(11),
                 'class' => $this->string(255)->notNull(),
@@ -37,6 +37,6 @@ class m180627_121715_files extends Migration
     public function safeDown()
     {
 
-        $this->dropTable('{{%file}}');
+        $this->dropTable('{{%file_module}}');
     }
 }
