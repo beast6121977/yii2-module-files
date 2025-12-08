@@ -12,12 +12,12 @@ class m190803_101632_alter_file extends Migration
      */
     public function safeUp()
     {
-        $this->createIndex('file-class', '{{%file_module}}', 'class');
-        $this->createIndex('file-object_id', '{{%file_module}}', 'object_id');
-        $this->createIndex('file-field', '{{%file_module}}', 'field');
-        $this->createIndex('file-type', '{{%file_module}}', 'type');
-        $this->createIndex('file-hash', '{{%file_module}}', 'hash');
-        $this->createIndex('file-filename', '{{%file_module}}', 'filename');
+        $this->createIndex('file-module-class', '{{%file_module}}', 'class');
+        $this->createIndex('file-module-object_id', '{{%file_module}}', 'object_id');
+        $this->createIndex('file-module-field', '{{%file_module}}', 'field');
+        $this->createIndex('file-module-type', '{{%file_module}}', 'type');
+        $this->createIndex('file-module-hash', '{{%file_module}}', 'hash');
+        $this->createIndex('file-module-filename', '{{%file_module}}', 'filename');
     }
 
     /**
