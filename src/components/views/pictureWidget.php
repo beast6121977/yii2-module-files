@@ -24,5 +24,5 @@ use yii\web\View;
             srcset="
                 <?= $model->getPreviewWebPath(1.5 * $width) ?> 1x,
                 <?= $model->getPreviewWebPath(2 * $width) ?> 2x">
-    <img src="<?= $model->getPreviewWebPath($width) ?>" alt="<?= $alt ?>" <?= $classImg ? "class=\"{$classImg}\"" : NULL ?>>
+    <img src="<?= $model->getPreviewWebPath($width) ?>" alt="<?= $alt ?>" <?= $classImg ? "class=\"{$classImg}\"" : NULL ?> itemprop="image">
 </picture>

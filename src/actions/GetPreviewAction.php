@@ -75,8 +75,9 @@ class GetPreviewAction extends Action
 
         $response = Yii::$app->response;
         $response->format = Response::FORMAT_RAW;
-        $coontentType = mime_content_type($filename);
-        $this->setHeaders($response, $coontentType, md5($this->model->created));
+        $contentType = mime_content_type($filename);
+        $etag = $this->buildEtag($width, $webp);
+        $this->setHeaders($response, $contentType, $etag);
         $stream = fopen($filename, 'rb');
         Yii::$app->response->sendStreamAsFile($stream, $this->model->title, [
             'inline' => true,
@@ -104,10 +105,30 @@ class GetPreviewAction extends Action
     protected function sendAsIs()
     {
         $stream = fopen($this->model->rootPath, 'rb');
-        Yii::$app->response->sendStreamAsFile($stream, $this->model->title, [
-            'inline' => true,
-            'mimeType' => $this->model->content_type,
-            'filesize' => $this->model->size
-        ]);
+        $etag = $this->buildEtag(null, null);
+        $this->setHeaders(Yii::$app->response, $this->model->content_type, $etag);
+        Yii::$app->response->sendStreamAsFile(
+            $stream,
+            $this->model->title,
+            [
+                'inline' => true,
+                'mimeType' => $this->model->content_type,
+                'filesize' => $this->model->size
+            ]
+        );
+    }
+
+    /**
+     * Формируем ETag с учетом варианта превью.
+     */
+    private function buildEtag($width, $webp): string
+    {
+        return md5(implode(':', [
+            $this->model->hash,
+            $width ?? 'original',
+            (int)$webp,
+            $this->model->created,
+            $this->model->size
+        ]));
     }
 }

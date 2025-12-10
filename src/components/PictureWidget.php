@@ -31,8 +31,9 @@ class PictureWidget extends Widget
         if (empty($this->model) || !in_array($this->model->type, [FileType::IMAGE, FileType::VIDEO]))
             return null;
 
-        if (is_array($this->width))
+        if (is_array($this->width)) {
             $this->view = 'mediaPictureWidget';
+        }
 
         return $this->render($this->view, [
             'model' => $this->model,

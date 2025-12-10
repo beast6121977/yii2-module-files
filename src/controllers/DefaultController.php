@@ -1,11 +1,4 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: floor12
- * Date: 01.01.2018
- * Time: 12:03
- */
-
 namespace modules\files\controllers;
 
 use modules\files\actions\GetFileAction;

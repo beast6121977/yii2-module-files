@@ -1,11 +1,4 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: floor12
- * Date: 07.01.2018
- * Time: 8:43
- */
-
 namespace modules\files\logic;
 
 
@@ -16,7 +9,6 @@ use yii\db\ActiveRecordInterface;
 
 class FileCreateFromPath
 {
-
     private $className;
     private $fieldName;
     private $filePath;
