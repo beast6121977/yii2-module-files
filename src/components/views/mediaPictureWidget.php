@@ -10,6 +10,7 @@
  */
 
 use modules\files\models\File;
+use yii\helpers\Html;
 use yii\web\View;
 
 ?>
@@ -41,5 +42,6 @@ $fallbackWidth = !empty($widthValues) ? end($widthValues) : 0;
                 <?= $model->getPreviewWebPath(1.5 * $widthValue) ?> 1x,
                 <?= $model->getPreviewWebPath(2 * $widthValue) ?> 2x">
     <?php } ?>
-    <img src="<?= $model->getPreviewWebPath($fallbackWidth) ?>" alt="<?= $alt ?>" <?= $classImg ? "class=\"{$classImg}\"" : NULL ?> itemprop="image">
+
+    <?=Html::img($model->getPreviewWebPath($fallbackWidth), ['class' => $classImg, 'alt' => $alt, 'itemprop' => 'image', 'loading' => 'lazy'])?>
 </picture>
