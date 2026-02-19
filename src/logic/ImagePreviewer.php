@@ -66,8 +66,16 @@ class ImagePreviewer
         if (!is_file($this->fileName) || filesize($this->fileName) == 0)
             $this->createPreview($sourceImagePath, $this->model->getWatermark());
 
-        if ($this->webp && !file_exists($this->fileNameWebp))
-            $this->createPreviewWebp();
+        if ($this->webp && !file_exists($this->fileNameWebp)) {
+            $ext = strtolower(pathinfo($this->model->rootPath, PATHINFO_EXTENSION));
+            $isTransparentSource = in_array($ext, ['webp', 'png'], true)
+                || in_array($this->model->content_type ?? '', ['image/webp', 'image/png'], true);
+            if ($isTransparentSource && !$this->model->isVideo()) {
+                $this->createPreviewWebpFromSource($sourceImagePath, $this->model->getWatermark());
+            } else {
+                $this->createPreviewWebp();
+            }
+        }
 
         if ($this->webp)
             return $this->fileNameWebp;
@@ -127,12 +135,101 @@ class ImagePreviewer
 
 
     /**
-     *  Create webp from default preview
+     *  Create webp from default preview (jpeg)
      */
     protected function createPreviewWebp()
     {
         $img = new SimpleImage();
         $img->load($this->fileName);
-        $img->save($this->fileNameWebp, IMAGETYPE_WEBP, 70);
+        $img->save($this->fileNameWebp, IMAGETYPE_WEBP, 85);
+    }
+
+    /**
+     * Create webp from source with transparency preserved (for webp/png).
+     * Prefer Imagick, then cwebp (preserves alpha); GD last (often loses alpha on WebP load).
+     */
+    protected function createPreviewWebpFromSource(string $sourceImagePath, $watermarkInPng = null)
+    {
+        if (extension_loaded('imagick')) {
+            $this->createPreviewWebpFromSourceImagick($sourceImagePath, $watermarkInPng);
+            return;
+        }
+
+        if ($this->createPreviewWebpViaCwebp($sourceImagePath)) {
+            return;
+        }
+
+        $img = new SimpleImage();
+        $img->load($sourceImagePath);
+
+        if ($watermarkInPng) {
+            $img->watermark($watermarkInPng);
+        }
+
+        $imgWidth = $img->getWidth();
+        if ($this->width && $this->width < $imgWidth) {
+            $img->resizeToWidth($this->width);
+        }
+
+        $img->save($this->fileNameWebp, IMAGETYPE_WEBP, 85);
+    }
+
+    /**
+     * Create webp via cwebp CLI (preserves transparency). Used when Imagick unavailable.
+     * Watermark is not applied. Returns true on success.
+     */
+    protected function createPreviewWebpViaCwebp(string $sourceImagePath): bool
+    {
+        $cwebp = trim((string) shell_exec('which cwebp 2>/dev/null'));
+        if ($cwebp === '') {
+            $cwebp = '/usr/bin/cwebp';
+        }
+        if (!is_file($cwebp)) {
+            return false;
+        }
+
+        $srcReal = (is_file($sourceImagePath) ? realpath($sourceImagePath) : null) ?: $sourceImagePath;
+
+        $outDir = dirname($this->fileNameWebp);
+        if (!is_dir($outDir)) {
+            mkdir($outDir, 0755, true);
+        }
+
+        $resize = '';
+        if ($this->width > 0) {
+            $resize = ' -resize ' . (int) $this->width . ' 0';
+        }
+        $src = escapeshellarg($srcReal);
+        $out = escapeshellarg($this->fileNameWebp);
+        $cmd = $cwebp . ' -q 85' . $resize . ' ' . $src . ' -o ' . $out . ' 2>&1';
+        exec($cmd, $output, $code);
+
+        return $code === 0 && is_file($this->fileNameWebp) && filesize($this->fileNameWebp) > 0;
+    }
+
+    /**
+     * Create webp from source using Imagick (preserves transparency where GD fails).
+     */
+    protected function createPreviewWebpFromSourceImagick(string $sourceImagePath, $watermarkInPng = null): void
+    {
+        $img = new \Imagick($sourceImagePath);
+        $img->setImageFormat('webp');
+        $w = (int) $img->getImageWidth();
+        $h = (int) $img->getImageHeight();
+
+        if ($this->width && $this->width < $w) {
+            $img->resizeImage($this->width, (int) round($h * $this->width / $w), \Imagick::FILTER_LANCZOS, 1);
+        }
+
+        if ($watermarkInPng && is_file($watermarkInPng)) {
+            $stamp = new \Imagick($watermarkInPng);
+            $stamp->resizeImage($img->getImageWidth(), $img->getImageHeight(), \Imagick::FILTER_LANCZOS, 1);
+            $img->compositeImage($stamp, \Imagick::COMPOSITE_OVER, 0, 0);
+            $stamp->destroy();
+        }
+
+        $img->setImageCompressionQuality(85);
+        $img->writeImage($this->fileNameWebp);
+        $img->destroy();
     }
 }

@@ -31,25 +31,39 @@ class SimpleImage
             imageSaveAlpha($this->image, true);
         } elseif ($this->image_type == IMAGETYPE_WEBP) {
             $this->image = imagecreatefromwebp($filename);
+            if ($this->image !== false) {
+                imagesavealpha($this->image, true);
+                imagealphablending($this->image, false);
+            }
         }
     }
 
     function save($filename, $image_type = IMAGETYPE_JPEG, $compression = 75, $permissions = null)
     {
         if ($image_type == IMAGETYPE_JPEG) {
-            imagejpeg($this->image, $filename, $compression);
+            $img = $this->image;
+            if (in_array($this->image_type, [IMAGETYPE_WEBP, IMAGETYPE_PNG], true)) {
+                $w = imagesx($this->image);
+                $h = imagesy($this->image);
+                $white = imagecreatetruecolor($w, $h);
+                $bg = imagecolorallocate($white, 255, 255, 255);
+                imagefill($white, 0, 0, $bg);
+                imagealphablending($white, true);
+                imagecopyresampled($white, $this->image, 0, 0, 0, 0, $w, $h, $w, $h);
+                $img = $white;
+            }
+            imagejpeg($img, $filename, $compression);
+            if ($img !== $this->image) {
+                imagedestroy($img);
+            }
         } elseif ($image_type == IMAGETYPE_GIF) {
             imagegif($this->image, $filename);
         } elseif ($image_type == IMAGETYPE_PNG) {
             imagepng($this->image, $filename);
         } elseif ($image_type == IMAGETYPE_WEBP) {
-            $dst = imagecreatetruecolor(imagesx($this->image), imagesy($this->image));
-            imagealphablending($dst, false);
-            imagesavealpha($dst, true);
-            $transparent = imagecolorallocatealpha($dst, 255, 255, 255, 127);
-            imagefilledrectangle($dst, 0, 0, imagesx($this->image), imagesy($this->image), $transparent);
-            imagecopy($dst, $this->image, 0, 0, 0, 0, imagesx($this->image), imagesy($this->image));
-            imagewebp($dst, $filename);
+            imagealphablending($this->image, false);
+            imagesavealpha($this->image, true);
+            imagewebp($this->image, $filename, $compression);
         }
 
         if ($permissions != null) {

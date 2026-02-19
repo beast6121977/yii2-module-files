@@ -75,8 +75,10 @@ class Module extends \yii\base\Module
     {
         $this->registerTranslations();
         $this->db = Yii::$app->{$this->params['db']};
-        $this->storageFullPath = Yii::getAlias($this->storage);
-        $this->cacheFullPath = Yii::getAlias($this->cache);
+        $storage = Yii::getAlias($this->storage);
+        $cache = Yii::getAlias($this->cache);
+        $this->storageFullPath = realpath($storage) ?: $storage;
+        $this->cacheFullPath = realpath($cache) ?: $cache;
     }
 
     /**
