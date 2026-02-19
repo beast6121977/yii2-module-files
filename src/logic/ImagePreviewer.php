@@ -141,7 +141,7 @@ class ImagePreviewer
     {
         $img = new SimpleImage();
         $img->load($this->fileName);
-        $img->save($this->fileNameWebp, IMAGETYPE_WEBP, 85);
+        $img->save($this->fileNameWebp, IMAGETYPE_WEBP, 95);
     }
 
     /**
@@ -171,7 +171,7 @@ class ImagePreviewer
             $img->resizeToWidth($this->width);
         }
 
-        $img->save($this->fileNameWebp, IMAGETYPE_WEBP, 85);
+        $img->save($this->fileNameWebp, IMAGETYPE_WEBP, 95);
     }
 
     /**
@@ -201,7 +201,7 @@ class ImagePreviewer
         }
         $src = escapeshellarg($srcReal);
         $out = escapeshellarg($this->fileNameWebp);
-        $cmd = $cwebp . ' -q 85' . $resize . ' ' . $src . ' -o ' . $out . ' 2>&1';
+        $cmd = $cwebp . ' -q 95' . $resize . ' ' . $src . ' -o ' . $out . ' 2>&1';
         exec($cmd, $output, $code);
 
         return $code === 0 && is_file($this->fileNameWebp) && filesize($this->fileNameWebp) > 0;
@@ -228,7 +228,7 @@ class ImagePreviewer
             $stamp->destroy();
         }
 
-        $img->setImageCompressionQuality(85);
+        $img->setImageCompressionQuality(95);
         $img->writeImage($this->fileNameWebp);
         $img->destroy();
     }
