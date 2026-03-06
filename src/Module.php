@@ -1,11 +1,4 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: floor12
- * Date: 31.12.2017
- * Time: 14:45
- */
-
 namespace modules\files;
 
 use Yii;
