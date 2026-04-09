@@ -23,6 +23,11 @@ class FileBehaviour extends Behavior
      */
     public $baseClass = null;
 
+    /** Имя атрибута primary key у owner-модели.
+     * @var string|null
+     */
+    public $ownerPrimaryKeyAttribute = null;
+
     /** В этот массив помещаются id связанных файлов с текущей моделью для последующейго сохранения.
      * @var array
      */
@@ -62,6 +67,7 @@ class FileBehaviour extends Behavior
     public function filesSave()
     {
         $order = 0;
+        $ownerPrimaryKeyValue = $this->getOwnerPrimaryKeyValue();
         if ($this->_values) {
 
             foreach ($this->_values as $field => $ids) {
@@ -70,7 +76,7 @@ class FileBehaviour extends Behavior
                     ['object_id' => 0],
                     [
                         'class' => $this->getModelClass(),
-                        'object_id' => $this->owner->id,
+                        'object_id' => $ownerPrimaryKeyValue,
                         'field' => $field,
                     ]
                 )->execute();
@@ -80,7 +86,7 @@ class FileBehaviour extends Behavior
                         continue;
                     $file = File::findOne($id);
                     if ($file) {
-                        $file->object_id = $this->owner->id;
+                        $file->object_id = $ownerPrimaryKeyValue;
                         $file->ordering = $order++;
                         $file->save();
                         if (!$file->save()) {
@@ -96,7 +102,7 @@ class FileBehaviour extends Behavior
     {
         File::deleteAll([
             'class' => $this->getModelClass(),
-            'object_id' => $this->owner->id,
+            'object_id' => $this->getOwnerPrimaryKeyValue(),
         ]);
     }
 
@@ -223,7 +229,7 @@ class FileBehaviour extends Behavior
                     $this->cachedFiles[$att_name] = File::find()
                         ->where(
                             [
-                                'object_id' => $this->owner->id,
+                                'object_id' => $this->getOwnerPrimaryKeyValue(),
                                 'field' => $att_name,
                                 'class' => $this->getModelClass()
                             ])
@@ -233,7 +239,7 @@ class FileBehaviour extends Behavior
                     $this->cachedFiles[$att_name] = File::find()
                         ->where(
                             [
-                                'object_id' => $this->owner->id,
+                                'object_id' => $this->getOwnerPrimaryKeyValue(),
                                 'field' => $att_name,
                                 'class' => $this->getModelClass()
                             ])
@@ -267,5 +273,32 @@ class FileBehaviour extends Behavior
     function getRealAttributeName($attribute)
     {
         return str_replace("_ids", "", $attribute);
+    }
+
+    /**
+     * Возвращает значение primary key owner-модели.
+     * Если явно задан ownerPrimaryKeyAttribute, используется он.
+     * Иначе используется primary key ActiveRecord-модели.
+     *
+     * @return mixed
+     * @throws ErrorException
+     */
+    protected function getOwnerPrimaryKeyValue()
+    {
+        $attribute = $this->ownerPrimaryKeyAttribute;
+
+        if (!$attribute) {
+            $primaryKey = $this->owner->primaryKey();
+            if (count($primaryKey) !== 1) {
+                throw new ErrorException('Composite primary keys are not supported by FileBehaviour.');
+            }
+            $attribute = reset($primaryKey);
+        }
+
+        if (!$this->owner->hasAttribute($attribute)) {
+            throw new ErrorException("Owner primary key attribute '{$attribute}' is not found.");
+        }
+
+        return $this->owner->getAttribute($attribute);
     }
 }
