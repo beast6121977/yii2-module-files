@@ -6,6 +6,13 @@ use yii\helpers\Html;
 
 BootstrapPluginAsset::register($this);
 
+$currentFile = $value ?? $model->$attribute;
+if (is_array($currentFile)) {
+    $currentFile = $currentFile[array_key_first($currentFile)] ?? null;
+}
+
+$inputName = $name ?: (new ReflectionClass($model))->getShortName() . "[{$attribute}_ids][]";
+
 if (YII_ENV == 'test') // This code is only for testing
     echo Html::fileInput('files', null, [
         'id' => "files-upload-field-{$attribute}",
@@ -13,7 +20,7 @@ if (YII_ENV == 'test') // This code is only for testing
         'data-modelclass' => $model::className(),
         'data-attribute' => $attribute,
         'data-mode' => 'single',
-        'data-name' => $name ?: (new ReflectionClass($model))->getShortName() . "[{$attribute}_ids][]",
+        'data-name' => $inputName,
         'data-ratio' => $ratio ?? 0,
         'data-block' => $block_id,
 
@@ -25,12 +32,16 @@ if (YII_ENV == 'test') // This code is only for testing
         <div class="icon"><?= IconHelper::PLUS ?></div>
         <?= $uploadButtonText ?>
     </button>
-    <?= Html::hiddenInput($name ?: (new ReflectionClass($model))->getShortName() . "[{$attribute}_ids][]", null) ?>
+    <?= Html::hiddenInput($inputName, null, ['class' => 'f12-file-input-placeholder']) ?>
+    <?php if ($currentFile): ?>
+        <?= Html::hiddenInput($inputName, $currentFile->id, ['class' => 'f12-file-input-current']) ?>
+    <?php endif; ?>
     <div class="floor12-files-widget-list">
-        <?php if ($value ?? $model->$attribute) echo $this->render('@modules/files/views/default/_single', [
-            'model' => $value ?? $model->$attribute,
+        <?php if ($currentFile) echo $this->render('@modules/files/views/default/_single', [
+            'model' => $currentFile,
             'ratio' => $ratio,
-            'name' => $name
+            'name' => $name,
+            'renderHiddenInput' => false,
         ]) ?>
     </div>
     <div class="clearfix"></div>

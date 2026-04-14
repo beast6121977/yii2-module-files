@@ -71,6 +71,8 @@ class FileBehaviour extends Behavior
         if ($this->_values) {
 
             foreach ($this->_values as $field => $ids) {
+                $ids = $this->normalizeIds($ids);
+
                 Yii::$app->db->createCommand()->update(
                     "{{%file_module}}",
                     ['object_id' => 0],
@@ -82,13 +84,10 @@ class FileBehaviour extends Behavior
                 )->execute();
 
                 if ($ids) foreach ($ids as $id) {
-                    if (empty($id))
-                        continue;
                     $file = File::findOne($id);
                     if ($file) {
                         $file->object_id = $ownerPrimaryKeyValue;
                         $file->ordering = $order++;
-                        $file->save();
                         if (!$file->save()) {
                             throw new ErrorException('Невозможно обновить объект File.');
                         }
@@ -300,5 +299,34 @@ class FileBehaviour extends Behavior
         }
 
         return $this->owner->getAttribute($attribute);
+    }
+
+    /**
+     * Нормализует список file ids: убирает пустые и дублирующиеся значения.
+     *
+     * @param mixed $ids
+     * @return array
+     */
+    protected function normalizeIds($ids): array
+    {
+        if (!is_array($ids)) {
+            $ids = [$ids];
+        }
+
+        $normalizedIds = [];
+        foreach ($ids as $id) {
+            if ($id === null || $id === '' || $id === false) {
+                continue;
+            }
+
+            $id = (int)$id;
+            if ($id <= 0 || isset($normalizedIds[$id])) {
+                continue;
+            }
+
+            $normalizedIds[$id] = $id;
+        }
+
+        return array_values($normalizedIds);
     }
 }

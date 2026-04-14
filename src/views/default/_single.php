@@ -9,6 +9,7 @@
  * @var $model File
  * @var $ratio float
  * @var $name string
+ * @var $renderHiddenInput bool
  *
  */
 
@@ -20,6 +21,8 @@ use yii\web\View;
 
 if (is_array($model))
     $model = $model[array_key_first($model)];
+
+$renderHiddenInput = $renderHiddenInput ?? true;
 
 $doc_contents = [
     'application/msword',
@@ -38,7 +41,9 @@ $doc_contents = [
              data-toggle="dropdown" aria-haspopup="true"
              aria-expanded="false" class="floor12-single-file-object">
             <img src="<?= $model->href ?>" class="img-responsive">
-            <?= Html::hiddenInput($name ?: ((new ReflectionClass($model->class))->getShortName() . "[{$model->field}_ids][]"), $model->id) ?>
+            <?php if ($renderHiddenInput): ?>
+                <?= Html::hiddenInput($name ?: ((new ReflectionClass($model->class))->getShortName() . "[{$model->field}_ids][]"), $model->id, ['class' => 'f12-file-input-current']) ?>
+            <?php endif; ?>
         </div>
 
     <?php else: ?>
@@ -51,7 +56,9 @@ $doc_contents = [
              aria-expanded="false" title="<?= $model->title ?>">
 
 
-            <?= Html::hiddenInput($name ?: ((new ReflectionClass($model->class))->getShortName() . "[{$model->field}_ids][]"), $model->id) ?>
+            <?php if ($renderHiddenInput): ?>
+                <?= Html::hiddenInput($name ?: ((new ReflectionClass($model->class))->getShortName() . "[{$model->field}_ids][]"), $model->id, ['class' => 'f12-file-input-current']) ?>
+            <?php endif; ?>
 
             <?php if ($model->type != FileType::IMAGE): ?>
                 <?= $model->icon ?>
@@ -105,4 +112,3 @@ $doc_contents = [
     </ul>
 
 </div>
-
