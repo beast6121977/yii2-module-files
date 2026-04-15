@@ -202,6 +202,9 @@ function sortableFiles() {
 function removeFile(id) {
     id = "#yii2-file-object-" + id;
     const blockId = $(id).parents('.files-widget-block').attr('id');
+    const block = $('#' + blockId);
+
+    block.find('input.f12-file-input-current').remove();
 
     $(id).parents('div.files-btn-group').fadeOut(200, function () {
         $(this).remove();
@@ -406,5 +409,4 @@ $(document).ready(function () {
     initCropperLayout();
 
 });
-
 
