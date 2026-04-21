@@ -33,15 +33,11 @@ if (YII_ENV == 'test') // This code is only for testing
         <?= $uploadButtonText ?>
     </button>
     <?= Html::hiddenInput($inputName, null, ['class' => 'f12-file-input-placeholder']) ?>
-    <?php if ($currentFile): ?>
-        <?= Html::hiddenInput($inputName, $currentFile->id, ['class' => 'f12-file-input-current']) ?>
-    <?php endif; ?>
     <div class="floor12-files-widget-list">
         <?php if ($currentFile) echo $this->render('@modules/files/views/default/_single', [
             'model' => $currentFile,
             'ratio' => $ratio,
             'name' => $name,
-            'renderHiddenInput' => false,
         ]) ?>
     </div>
     <div class="clearfix"></div>
