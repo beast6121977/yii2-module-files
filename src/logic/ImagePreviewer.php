@@ -130,7 +130,7 @@ class ImagePreviewer
             $saveType = IMG_JPEG;
         }
 
-        $img->save($this->fileName, $saveType);
+        $img->save($this->fileName, $saveType, 95);
     }
 
 
