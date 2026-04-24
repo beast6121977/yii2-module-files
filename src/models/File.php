@@ -4,6 +4,7 @@ namespace modules\files\models;
 
 use ErrorException;
 use modules\files\assets\IconHelper;
+use modules\files\components\FileBehaviour;
 use Yii;
 use yii\db\ActiveRecord;
 use yii\helpers\Url;
@@ -253,7 +254,7 @@ class File extends ActiveRecord
 
     public function getHref()
     {
-        return Url::to(['/files/default/get', 'hash' => $this->hash]);
+        return Url::to(['/files/default/get', 'hash' => $this->hash, 'v' => $this->getDeliveryVersion()]);
     }
 
     /**
@@ -294,18 +295,56 @@ class File extends ActiveRecord
         $this->save(false);
     }
 
+    public function shouldApplyWatermark(): bool
+    {
+        return (bool)($this->getFieldConfig()['apply_watermark'] ?? false);
+    }
+
+    public function getWatermarkPath(): ?string
+    {
+        if (!$this->shouldApplyWatermark()) {
+            return null;
+        }
+
+        $watermark = $this->getFieldConfig()['watermark'] ?? null;
+        if (!$watermark) {
+            return null;
+        }
+
+        $resolvedPath = Yii::getAlias($watermark, false);
+        return $resolvedPath ?: null;
+    }
+
     /**
-     * @return mixed|null
+     * @return string|null
      */
     public function getWatermark()
     {
-        $owner = new $this->class();
-        if (
-            isset($owner->behaviors['files']) &&
-            isset($owner->behaviors['files']->attributes[$this->field]) &&
-            isset($owner->behaviors['files']->attributes[$this->field]['watermark'])
-        )
-            return $owner->behaviors['files']->attributes[$this->field]['watermark'];
+        return $this->getWatermarkPath();
+    }
+
+    public function getWatermarkSignature(): string
+    {
+        if (!$this->shouldApplyWatermark()) {
+            return 'plain';
+        }
+
+        $path = $this->getWatermarkPath();
+        if (!$path) {
+            return 'wm-missing';
+        }
+
+        return substr(md5($path . ':' . ((string)(@filemtime($path) ?: 0))), 0, 12);
+    }
+
+    public function getDeliveryVersion(): string
+    {
+        return md5(implode(':', [
+            $this->hash,
+            $this->created,
+            $this->size,
+            $this->getWatermarkSignature(),
+        ]));
     }
 
     /**
@@ -335,9 +374,15 @@ class File extends ActiveRecord
             return
                 Yii::$app->getModule('files')->hostStatic .
                 $this->makeNameWithSize($this->filename, $width, $webp) .
-                "?hash={$this->hash}&width={$width}&webp=" . intval($webp);
+                "?hash={$this->hash}&width={$width}&webp=" . intval($webp) . "&v={$this->getDeliveryVersion()}";
 
-        return Url::toRoute(['/files/default/image', 'hash' => $this->hash, 'width' => $width, 'webp' => $webp]);
+        return Url::toRoute([
+            '/files/default/image',
+            'hash' => $this->hash,
+            'width' => $width,
+            'webp' => $webp,
+            'v' => $this->getDeliveryVersion(),
+        ]);
     }
 
     /**
@@ -357,9 +402,20 @@ class File extends ActiveRecord
      */
     public function makeNameWithSize($name, $width = 0, $webp = false)
     {
-        $extension = pathinfo($this->rootPath, PATHINFO_EXTENSION);
-        $rootPath = str_replace(".{$extension}", '', $name) . "_w" . $width . ".{$extension}";
-        return str_replace($extension, $webp ? 'webp' : 'jpeg', $rootPath);
+        $pathInfo = pathinfo($name);
+        $directory = $pathInfo['dirname'] ?? '';
+        $directory = $directory === '.' ? '' : $directory;
+        $basename = $pathInfo['filename'] ?? '';
+        $watermarkSuffix = $this->shouldApplyWatermark() ? '_wm' . $this->getWatermarkSignature() : '';
+        $targetExtension = $this->getPreviewExtension($webp);
+
+        return ($directory ? $directory . DIRECTORY_SEPARATOR : '')
+            . $basename
+            . $watermarkSuffix
+            . '_w'
+            . (int)$width
+            . '.'
+            . $targetExtension;
     }
 
     /**
@@ -382,6 +438,49 @@ class File extends ActiveRecord
     public function isFile(): bool
     {
         return $this->type == FileType::FILE;
+    }
+
+    protected function getFilesBehavior(): ?FileBehaviour
+    {
+        if (!class_exists($this->class)) {
+            return null;
+        }
+
+        $owner = new $this->class();
+        $behavior = $owner->getBehavior('files');
+
+        return $behavior instanceof FileBehaviour ? $behavior : null;
+    }
+
+    protected function getFieldConfig(): array
+    {
+        $behavior = $this->getFilesBehavior();
+        if (!$behavior || !array_key_exists($this->field, $behavior->attributes)) {
+            return [];
+        }
+
+        $config = $behavior->attributes[$this->field];
+        return is_array($config) ? $config : [];
+    }
+
+    protected function getPreviewExtension(bool $webp = false): string
+    {
+        if ($webp) {
+            return 'webp';
+        }
+
+        if ($this->isVideo()) {
+            return 'jpeg';
+        }
+
+        $extension = strtolower((string)pathinfo($this->rootPath, PATHINFO_EXTENSION));
+
+        return match ($extension) {
+            'png' => 'png',
+            'gif' => 'gif',
+            'jpg', 'jpeg' => 'jpeg',
+            default => 'jpeg',
+        };
     }
 
 }

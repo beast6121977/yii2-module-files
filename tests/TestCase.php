@@ -8,6 +8,7 @@
 
 namespace modules\files\tests;
 
+use modules\files\Module;
 use modules\files\tests\data\m180627_121715_files;
 use Yii;
 use yii\console\Application;
@@ -32,9 +33,12 @@ abstract class TestCase extends \PHPUnit\Framework\TestCase
 
     protected function setApp()
     {
+        $storagePath = sys_get_temp_dir() . '/yii2-module-files-tests/storage';
+        $cachePath = sys_get_temp_dir() . '/yii2-module-files-tests/cache';
         $files = [
-            'class' => 'floor12\files\Module',
-            'storage' => '@app/storage',
+            'class' => Module::class,
+            'storage' => $storagePath,
+            'cache' => $cachePath,
         ];
         Yii::$app->setModule('files', $files);
 

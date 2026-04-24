@@ -118,6 +118,9 @@ $ ./yii migrate --migrationPath=@vendor/floor12/yii2-module-files/src/migrations
      return [
          'files' => [
              'class' => 'floor12\files\components\FileBehaviour',
+             // Укажите атрибут, если primary key модели отличается от id
+             // Например: project_id
+             'ownerPrimaryKeyAttribute' => 'project_id',
              'attributes' => [
                  'avatar',
                  'documents'
@@ -125,6 +128,9 @@ $ ./yii migrate --migrationPath=@vendor/floor12/yii2-module-files/src/migrations
          ],
          ...
 ```
+
+Параметр `ownerPrimaryKeyAttribute` нужен только в тех случаях, когда ключ owner-модели хранится не в атрибуте `id`.
+Если primary key модели называется `project_id`, передайте `'ownerPrimaryKeyAttribute' => 'project_id'`.
 
 Чтобы отобразить красивые названия для полей, прописываем для них лейблы, как будто это обычные поля модели:
 

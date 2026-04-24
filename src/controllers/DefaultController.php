@@ -7,6 +7,7 @@ use modules\files\components\FileInputWidget;
 use modules\files\logic\FileAlt;
 use modules\files\logic\FileCreateFromInstance;
 use modules\files\logic\FileCropRotate;
+use modules\files\logic\ImagePreviewer;
 use modules\files\logic\FileRename;
 use modules\files\models\File;
 use Yii;
@@ -195,10 +196,32 @@ class DefaultController extends Controller
 
         $response = Yii::$app->response;
         $response->format = Response::FORMAT_RAW;
-        $response->getHeaders()->set('Content-Type', 'image/jpeg; charset=utf-8');
 
         Yii::$app->response->headers->set('Last-Modified', date("c", $model->created));
         Yii::$app->response->headers->set('Cache-Control', 'public, max-age=' . (60 * 60 * 24 * 15));
+
+        if ($model->isImage() && $model->shouldApplyWatermark()) {
+            if ($model->isSvg()) {
+                throw new NotFoundHttpException('Watermark cannot be applied to SVG images.');
+            }
+
+            $watermarkPath = $model->getWatermarkPath();
+            if (!$watermarkPath || !is_file($watermarkPath)) {
+                throw new NotFoundHttpException('Watermark file is not found.');
+            }
+
+            $filename = Yii::createObject(ImagePreviewer::class, [$model, 0, false])->getUrl();
+            if (!file_exists($filename)) {
+                throw new NotFoundHttpException('Preview not found.');
+            }
+
+            $response->sendFile($filename, 'preview.' . pathinfo($filename, PATHINFO_EXTENSION), [
+                'inline' => true,
+                'mimeType' => mime_content_type($filename) ?: 'application/octet-stream',
+            ]);
+
+            return;
+        }
 
         if (!file_exists($model->getRootPreviewPath()))
             throw new NotFoundHttpException('Preview not found.');

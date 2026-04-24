@@ -32,12 +32,24 @@ class GetPreviewAction extends Action
     public function run($hash, $width = null, $webp = null)
     {
         $this->loadAndCheckModel($hash);
-        $this->width = $width;
+        $this->width = max(0, (int)$width);
+        $shouldUseProcessedVariant = $this->model->isImage() && $this->model->shouldApplyWatermark();
 
-        if ($width &&
+        if ($shouldUseProcessedVariant && $this->model->isSvg()) {
+            throw new NotFoundHttpException('Watermark cannot be applied to SVG images.');
+        }
+
+        if ($shouldUseProcessedVariant) {
+            $watermarkPath = $this->model->getWatermarkPath();
+            if (!$watermarkPath || !is_file($watermarkPath)) {
+                throw new NotFoundHttpException('Watermark file is not found.');
+            }
+        }
+
+        if (($this->width || $shouldUseProcessedVariant) &&
             $this->model->content_type !== 'image/svg+xml' &&
             $this->model->content_type !== 'image/svg') {
-            $this->sendPreview($width, $webp);
+            $this->sendPreview($this->width, $webp);
         } else {
             $this->sendAsIs();
         }
@@ -75,14 +87,14 @@ class GetPreviewAction extends Action
 
         $response = Yii::$app->response;
         $response->format = Response::FORMAT_RAW;
-        $contentType = mime_content_type($filename);
+        $contentType = mime_content_type($filename) ?: 'application/octet-stream';
         $etag = $this->buildEtag($width, $webp);
         $this->setHeaders($response, $contentType, $etag);
         $stream = fopen($filename, 'rb');
         Yii::$app->response->sendStreamAsFile($stream, $this->model->title, [
             'inline' => true,
-            'mimeType' => $this->model->content_type,
-            'filesize' => $this->model->size
+            'mimeType' => $contentType,
+            'filesize' => filesize($filename)
         ]);
     }
 
@@ -127,6 +139,8 @@ class GetPreviewAction extends Action
             $this->model->hash,
             $width ?? 'original',
             (int)$webp,
+            (int)$this->model->shouldApplyWatermark(),
+            $this->model->getWatermarkSignature(),
             $this->model->created,
             $this->model->size
         ]));

@@ -64,14 +64,14 @@ class ImagePreviewer
         }
 
         if (!is_file($this->fileName) || filesize($this->fileName) == 0)
-            $this->createPreview($sourceImagePath, $this->model->getWatermark());
+            $this->createPreview($sourceImagePath, $this->model->getWatermarkPath());
 
         if ($this->webp && !file_exists($this->fileNameWebp)) {
             $ext = strtolower(pathinfo($this->model->rootPath, PATHINFO_EXTENSION));
             $isTransparentSource = in_array($ext, ['webp', 'png'], true)
                 || in_array($this->model->content_type ?? '', ['image/webp', 'image/png'], true);
             if ($isTransparentSource && !$this->model->isVideo()) {
-                $this->createPreviewWebpFromSource($sourceImagePath, $this->model->getWatermark());
+                $this->createPreviewWebpFromSource($sourceImagePath, $this->model->getWatermarkPath());
             } else {
                 $this->createPreviewWebp();
             }
@@ -121,14 +121,10 @@ class ImagePreviewer
         $imgHeight = $img->getHeight();
 
         if ($this->width && $this->width < $imgWidth) {
-            $ratio = $this->width / $imgWidth;
             $img->resizeToWidth($this->width);
         }
 
-        $saveType = $img->image_type;
-        if ($saveType == IMG_WEBP || $saveType == IMG_QUADRATIC) {
-            $saveType = IMG_JPEG;
-        }
+        $saveType = $this->normalizeSaveType((int)$img->image_type);
 
         $img->save($this->fileName, $saveType, 95);
     }
@@ -155,7 +151,7 @@ class ImagePreviewer
             return;
         }
 
-        if ($this->createPreviewWebpViaCwebp($sourceImagePath)) {
+        if (!$watermarkInPng && $this->createPreviewWebpViaCwebp($sourceImagePath)) {
             return;
         }
 
@@ -176,7 +172,7 @@ class ImagePreviewer
 
     /**
      * Create webp via cwebp CLI (preserves transparency). Used when Imagick unavailable.
-     * Watermark is not applied. Returns true on success.
+     * Used only when watermark is not requested. Returns true on success.
      */
     protected function createPreviewWebpViaCwebp(string $sourceImagePath): bool
     {
@@ -231,5 +227,14 @@ class ImagePreviewer
         $img->setImageCompressionQuality(95);
         $img->writeImage($this->fileNameWebp);
         $img->destroy();
+    }
+
+    protected function normalizeSaveType(int $saveType): int
+    {
+        return match ($saveType) {
+            IMAGETYPE_PNG => IMAGETYPE_PNG,
+            IMAGETYPE_GIF => IMAGETYPE_GIF,
+            default => IMAGETYPE_JPEG,
+        };
     }
 }

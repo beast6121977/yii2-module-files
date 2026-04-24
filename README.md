@@ -116,15 +116,21 @@ fields are defined here
   public function behaviors()
   {
       return [
-          'files' => [
-              'class' => 'floor12\files\components\FileBehaviour',
-              'attributes' => [
-                  'avatar',
-                  'documents'
-              ],
-          ],
+         'files' => [
+             'class' => 'floor12\files\components\FileBehaviour',
+             // Set this if the owner model primary key attribute is not "id"
+             // For example: project_id
+             'ownerPrimaryKeyAttribute' => 'project_id',
+             'attributes' => [
+                 'avatar',
+                 'documents'
+             ],
+         ],
           ...
- ```
+```
+
+Use `ownerPrimaryKeyAttribute` only when the owner model primary key is stored in an attribute other than `id`.
+For example, if the primary key is `project_id`, pass `'ownerPrimaryKeyAttribute' => 'project_id'`.
 
 To have nice attribute labels in forms, add some labels to `attributeLabels()`:
 
