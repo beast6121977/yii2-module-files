@@ -4,7 +4,9 @@ namespace modules\files\tests\logic;
 use modules\files\logic\ImagePreviewer;
 use modules\files\models\File;
 use modules\files\models\FileType;
+use modules\files\tests\data\common\models\Products as BaseProducts;
 use modules\files\tests\data\WatermarkEnabledModel;
+use modules\files\tests\data\frontend\models\Products as FrontendProducts;
 use modules\files\tests\TestCase;
 use Yii;
 
@@ -46,6 +48,27 @@ class ImageWatermarkPolicyTest extends TestCase
         $this->assertStringContainsString(
             '_wm' . $file->getWatermarkSignature(),
             $file->makeNameWithSize($file->filename, 200)
+        );
+    }
+
+    public function testResolvesWatermarkConfigFromFrontendChildWhenBaseClassStored(): void
+    {
+        $file = new File([
+            'class' => BaseProducts::class,
+            'field' => 'image',
+            'title' => 'photo.png',
+            'filename' => '/photos/12345678901234567890123456789012.png',
+            'content_type' => 'image/png',
+            'type' => FileType::IMAGE,
+            'created' => time(),
+            'size' => 1,
+        ]);
+
+        $this->assertTrue(class_exists(FrontendProducts::class));
+        $this->assertTrue($file->shouldApplyWatermark());
+        $this->assertSame(
+            Yii::getAlias('@app/data/graphic_alpha.png'),
+            $file->getWatermarkPath()
         );
     }
 

@@ -33,6 +33,7 @@ class GetPreviewAction extends Action
     {
         $this->loadAndCheckModel($hash);
         $this->width = max(0, (int)$width);
+
         $shouldUseProcessedVariant = $this->model->isImage() && $this->model->shouldApplyWatermark();
 
         if ($shouldUseProcessedVariant && $this->model->isSvg()) {

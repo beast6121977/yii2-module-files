@@ -162,25 +162,31 @@ class SimpleImage
         $stamp = imagecreatefrompng($path);
         $stampWidth = imagesx($stamp);
         $stampHeight = imagesy($stamp);
+        imagealphablending($stamp, false);
+        imagesavealpha($stamp, true);
 
-        $transparentStamp = imagecreatetruecolor($this->getWidth(), $this->getHeight());
-        imagealphablending($transparentStamp, false);
-        imagesavealpha($transparentStamp, true);
-        $transparent = imagecolorallocatealpha($transparentStamp, 255, 255, 255, 127);
-        imagecolortransparent($transparentStamp, $transparent);
-        imagefilledrectangle($transparentStamp, 0, 0, $this->getWidth(), $this->getHeight(), $transparent);
-        imagecopyresampled($transparentStamp, $stamp, 0, 0, 0, 0, $this->getWidth(), $this->getHeight(), $stampWidth, $stampHeight);
+        $overlay = imagecreatetruecolor($this->getWidth(), $this->getHeight());
+        imagealphablending($overlay, false);
+        imagesavealpha($overlay, true);
+        $transparent = imagecolorallocatealpha($overlay, 255, 255, 255, 127);
+        imagefilledrectangle($overlay, 0, 0, $this->getWidth(), $this->getHeight(), $transparent);
+        imagecopyresampled($overlay, $stamp, 0, 0, 0, 0, $this->getWidth(), $this->getHeight(), $stampWidth, $stampHeight);
 
-        $newImage = imagecreatetruecolor($this->getWidth(), $this->getHeight());
-        imagealphablending($newImage, false);
-        imagesavealpha($newImage, true);
-        $newTransparent = imagecolorallocatealpha($newImage, 255, 255, 255, 127);
-        imagefilledrectangle($newImage, 0, 0, $this->getWidth(), $this->getHeight(), $newTransparent);
-        imagecopyresampled($newImage, $this->image, 0, 0, 0, 0, $this->getWidth(), $this->getHeight(), $this->getWidth(), $this->getHeight());
-        imagecopyresampled($newImage, $transparentStamp, 0, 0, 0, 0, $this->getWidth(), $this->getHeight(), $this->getWidth(), $this->getHeight());
-        $this->image = $newImage;
+        $base = imagecreatetruecolor($this->getWidth(), $this->getHeight());
+        imagealphablending($base, false);
+        imagesavealpha($base, true);
+        $baseTransparent = imagecolorallocatealpha($base, 255, 255, 255, 127);
+        imagefilledrectangle($base, 0, 0, $this->getWidth(), $this->getHeight(), $baseTransparent);
+        imagecopy($base, $this->image, 0, 0, 0, 0, $this->getWidth(), $this->getHeight());
+
+        // Blend watermark pixels over the source image instead of replacing it.
+        imagealphablending($base, true);
+        imagecopy($base, $overlay, 0, 0, 0, 0, $this->getWidth(), $this->getHeight());
+        imagesavealpha($base, true);
+
+        $this->image = $base;
 
         imagedestroy($stamp);
-        imagedestroy($transparentStamp);
+        imagedestroy($overlay);
     }
 }

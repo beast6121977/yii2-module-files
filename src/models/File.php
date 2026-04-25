@@ -34,6 +34,7 @@ use yii\helpers\Url;
 class File extends ActiveRecord
 {
     const DIRECTORY_SEPARATOR = "/";
+    private const WATERMARK_SIGNATURE_VERSION = 'v2';
 
 
     /**
@@ -334,7 +335,11 @@ class File extends ActiveRecord
             return 'wm-missing';
         }
 
-        return substr(md5($path . ':' . ((string)(@filemtime($path) ?: 0))), 0, 12);
+        return substr(md5(implode(':', [
+            self::WATERMARK_SIGNATURE_VERSION,
+            $path,
+            (string)(@filemtime($path) ?: 0),
+        ])), 0, 12);
     }
 
     public function getDeliveryVersion(): string
@@ -442,14 +447,22 @@ class File extends ActiveRecord
 
     protected function getFilesBehavior(): ?FileBehaviour
     {
-        if (!class_exists($this->class)) {
-            return null;
+        foreach ($this->getBehaviorHostCandidates() as $className) {
+            $behavior = $this->createFilesBehaviorFromClass($className);
+            if (!$behavior) {
+                continue;
+            }
+
+            if ($className === $this->class) {
+                return $behavior;
+            }
+
+            if ($behavior->baseClass === $this->class) {
+                return $behavior;
+            }
         }
 
-        $owner = new $this->class();
-        $behavior = $owner->getBehavior('files');
-
-        return $behavior instanceof FileBehaviour ? $behavior : null;
+        return null;
     }
 
     protected function getFieldConfig(): array
@@ -481,6 +494,87 @@ class File extends ActiveRecord
             'jpg', 'jpeg' => 'jpeg',
             default => 'jpeg',
         };
+    }
+
+    protected function getBehaviorHostCandidates(): array
+    {
+        $candidates = [$this->class];
+
+        if (is_string($this->class) && $this->class !== '') {
+            foreach ($this->buildNamespaceVariantCandidates($this->class) as $candidate) {
+                $candidates[] = $candidate;
+            }
+
+            foreach (get_declared_classes() as $declaredClass) {
+                if (is_subclass_of($declaredClass, $this->class)) {
+                    $candidates[] = $declaredClass;
+                }
+            }
+        }
+
+        return array_values(array_unique(array_filter($candidates)));
+    }
+
+    protected function buildNamespaceVariantCandidates(string $className): array
+    {
+        $replacements = $this->getNamespaceReplacementOrder();
+        $candidates = [];
+
+        foreach ($replacements as $search => $targets) {
+            if (!str_contains($className, $search)) {
+                continue;
+            }
+
+            foreach ($targets as $target) {
+                $candidates[] = str_replace($search, $target, $className);
+            }
+        }
+
+        return $candidates;
+    }
+
+    protected function getNamespaceReplacementOrder(): array
+    {
+        $preferBackend = false;
+        $appId = strtolower((string)(Yii::$app->id ?? ''));
+        $controllerNamespace = strtolower((string)(Yii::$app->controllerNamespace ?? ''));
+
+        if (
+            str_contains($appId, 'back')
+            || str_contains($appId, 'admin')
+            || str_contains($controllerNamespace, '\\backend\\')
+        ) {
+            $preferBackend = true;
+        }
+
+        $primaryTargets = $preferBackend
+            ? ['\\backend\\models\\', '\\frontend\\models\\', '\\api\\models\\']
+            : ['\\frontend\\models\\', '\\backend\\models\\', '\\api\\models\\'];
+
+        $secondaryTargets = $preferBackend
+            ? ['\\backend\\', '\\frontend\\', '\\api\\']
+            : ['\\frontend\\', '\\backend\\', '\\api\\'];
+
+        return [
+            '\\common\\models\\' => $primaryTargets,
+            '\\common\\' => $secondaryTargets,
+        ];
+    }
+
+    protected function createFilesBehaviorFromClass(string $className): ?FileBehaviour
+    {
+        if (!class_exists($className)) {
+            return null;
+        }
+
+        try {
+            $owner = new $className();
+            $behavior = $owner->getBehavior('files');
+        } catch (\Throwable) {
+            return null;
+        }
+
+        return $behavior instanceof FileBehaviour ? $behavior : null;
     }
 
 }
