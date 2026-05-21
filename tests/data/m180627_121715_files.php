@@ -23,6 +23,7 @@ class m180627_121715_files extends Migration
                 'title' => $this->string(255)->notNull(),
                 'filename' => $this->string(255)->notNull(),
                 'content_type' => $this->string(255)->notNull(),
+                'alt' => $this->string(255)->null(),
                 'type' => $this->integer(1)->notNull(),
                 'video_status' => $this->integer(1)->null()->defaultValue(null),
                 'ordering' => $this->integer(11)->notNull()->defaultValue(0),

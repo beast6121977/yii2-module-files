@@ -18,6 +18,7 @@ use yii\console\Controller;
 use yii\db\ActiveRecord;
 use yii\db\StaleObjectException;
 use yii\helpers\Console;
+use yii\helpers\FileHelper;
 
 class ConsoleController extends Controller
 {
@@ -92,16 +93,46 @@ class ConsoleController extends Controller
     function actionCleanCache()
     {
         $module = Yii::$app->getModule('files');
-        $commands = [];
-        $commands[] = "find {$module->storageFullPath}  -regextype egrep -regex \".+/.{32}_.*\"  -exec rm -rf {} \;";
-        $commands[] = "find {$module->cacheFullPath}  -regextype egrep -regex \".+/.{32}_.*\" -exec rm -rf {} \;";
-        $commands[] = "find {$module->storageFullPath}  -regextype egrep -regex \".+/.{32}\..{3,4}\.jpg\" -exec rm -rf {} \;";
-        $commands[] = "find {$module->cacheFullPath}  -regextype egrep -regex \".+/.{32}\..{3,4}\.jpg\" -exec rm -rf {} \;";
+        $deletedCount = 0;
 
-        array_map(function ($command) {
-            exec($command);
-        }, $commands);
+        foreach ([$module->storageFullPath, $module->cacheFullPath] as $path) {
+            $deletedCount += $this->removeGeneratedCacheFiles((string)$path);
+        }
 
+        $this->stdout('Deleted generated files: ' . $deletedCount . PHP_EOL, Console::FG_GREEN);
+
+    }
+
+    private function removeGeneratedCacheFiles(string $rootPath): int
+    {
+        if (!is_dir($rootPath)) {
+            return 0;
+        }
+
+        $deletedCount = 0;
+        $iterator = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($rootPath, \FilesystemIterator::SKIP_DOTS),
+            \RecursiveIteratorIterator::CHILD_FIRST
+        );
+
+        foreach ($iterator as $item) {
+            $basename = $item->getBasename();
+            if (!preg_match('/^.{32}_.*/', $basename)
+                && !preg_match('/^.{32}\..{3,4}\.jpg$/', $basename)
+            ) {
+                continue;
+            }
+
+            if ($item->isDir() && !$item->isLink()) {
+                FileHelper::removeDirectory($item->getPathname());
+            } elseif (is_file($item->getPathname()) || $item->isLink()) {
+                @unlink($item->getPathname());
+            }
+
+            $deletedCount++;
+        }
+
+        return $deletedCount;
     }
 
     /**

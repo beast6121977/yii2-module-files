@@ -10,3 +10,4 @@ phpunit.xml
 tests/_output/*
 composer.lock
 assets/.sass-cache
+/.codex

@@ -100,6 +100,14 @@ class FileCreateFromInstanceTest extends TestCase
         $this->assertFalse($model->isNewRecord);
         $this->assertTrue(file_exists($model->rootPath), $model->rootPath);
         $this->assertTrue(file_exists($model->rootPath), $model->getPreviewWebPath());
+        $this->assertStringContainsString('/files/default/image?', $model->getPreviewWebPath(160));
+        $this->assertStringContainsString('hash=' . $model->hash, $model->getPreviewWebPath(160));
+
+        unlink($model->rootPath);
+
+        $previewPath = $model->getPreviewWebPath(160);
+        $this->assertStringContainsString('/files/default/image?', $previewPath);
+        $this->assertStringContainsString('hash=' . $model->hash, $previewPath);
 
 
     }

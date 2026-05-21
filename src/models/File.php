@@ -375,6 +375,12 @@ class File extends ActiveRecord
         if (!$this->isVideo() && !$this->isImage())
             throw new ErrorException('Requiested file is not an image and its implsible to resize it.');
 
+        if (!$this->hash)
+            throw new ErrorException('File hash is empty and preview URL cannot be generated.');
+
+        $width = max(0, (int)$width);
+        $webp = (bool)$webp;
+
         if (Yii::$app->getModule('files')->hostStatic)
             return
                 Yii::$app->getModule('files')->hostStatic .
@@ -385,7 +391,7 @@ class File extends ActiveRecord
             '/files/default/image',
             'hash' => $this->hash,
             'width' => $width,
-            'webp' => $webp,
+            'webp' => (int)$webp,
             'v' => $this->getDeliveryVersion(),
         ]);
     }
