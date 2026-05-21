@@ -31,28 +31,32 @@ class GetPreviewAction extends Action
      */
     public function run($hash, $width = null, $webp = null)
     {
-        $this->loadAndCheckModel($hash);
-        $this->width = max(0, (int)$width);
+        try {
+            $this->loadAndCheckModel($hash);
+            $this->width = max(0, (int)$width);
 
-        $shouldUseProcessedVariant = $this->model->isImage() && $this->model->shouldApplyWatermark();
+            $shouldUseProcessedVariant = $this->model->isImage() && $this->model->shouldApplyWatermark();
 
-        if ($shouldUseProcessedVariant && $this->model->isSvg()) {
-            throw new NotFoundHttpException('Watermark cannot be applied to SVG images.');
-        }
-
-        if ($shouldUseProcessedVariant) {
-            $watermarkPath = $this->model->getWatermarkPath();
-            if (!$watermarkPath || !is_file($watermarkPath)) {
-                throw new NotFoundHttpException('Watermark file is not found.');
+            if ($shouldUseProcessedVariant && $this->model->isSvg()) {
+                throw new NotFoundHttpException('Watermark cannot be applied to SVG images.');
             }
-        }
 
-        if (($this->width || $shouldUseProcessedVariant) &&
-            $this->model->content_type !== 'image/svg+xml' &&
-            $this->model->content_type !== 'image/svg') {
-            $this->sendPreview($this->width, $webp);
-        } else {
-            $this->sendAsIs();
+            if ($shouldUseProcessedVariant) {
+                $watermarkPath = $this->model->getWatermarkPath();
+                if (!$watermarkPath || !is_file($watermarkPath)) {
+                    throw new NotFoundHttpException('Watermark file is not found.');
+                }
+            }
+
+            if (($this->width || $shouldUseProcessedVariant) &&
+                $this->model->content_type !== 'image/svg+xml' &&
+                $this->model->content_type !== 'image/svg') {
+                $this->sendPreview($this->width, $webp);
+            } else {
+                $this->sendAsIs();
+            }
+        } catch (\Exception $e) {
+            $this->corruptedFile();
         }
     }
 
@@ -119,7 +123,23 @@ class GetPreviewAction extends Action
     {
         $stream = fopen($this->model->rootPath, 'rb');
         $etag = $this->buildEtag(null, null);
-        $this->setHeaders(Yii::$app->response, $this->model->content_type, $etag);
+        $this->setHeaders(Yii::$app->response, IMAGETYPE_WEBP, $etag);
+        Yii::$app->response->sendStreamAsFile(
+            $stream,
+            'File is corrupted',
+            [
+                'inline' => true,
+                'mimeType' => IMAGETYPE_WEBP,
+                'filesize' => 6144
+            ]
+        );
+    }
+
+    protected function corruptedFile()
+    {
+        $stream = fopen('/storage/app/public/template/error.webp', 'rb');
+        $etag = $this->buildEtag(140, 140);
+        $this->setHeaders(Yii::$app->response, '', $etag);
         Yii::$app->response->sendStreamAsFile(
             $stream,
             $this->model->title,
