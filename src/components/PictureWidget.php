@@ -17,6 +17,8 @@ class PictureWidget extends Widget
     /** @var string */
     public $alt;
     /** @var string */
+    public $title;
+    /** @var string */
     public $classPicture;
     /** @var string */
     public $classImg;
@@ -39,6 +41,7 @@ class PictureWidget extends Widget
             'model' => $this->model,
             'width' => $this->width,
             'alt' => $this->alt,
+            'title' => $this->title,
             'classPicture' => $this->classPicture,
             'classImg' => $this->classImg,
         ]);

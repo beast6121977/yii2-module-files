@@ -7,6 +7,7 @@
  * @var $classPicture string
  * @var $classImg string
  * @var $alt string
+ * @var $title string
  */
 
 use modules\files\models\File;
@@ -43,5 +44,11 @@ $fallbackWidth = !empty($widthValues) ? end($widthValues) : 0;
                 <?= $model->getPreviewWebPath(2 * $widthValue) ?> 2x">
     <?php } ?>
 
-    <?=Html::img($model->getPreviewWebPath($fallbackWidth), ['class' => $classImg, 'alt' => $alt, 'itemprop' => 'image', 'loading' => 'lazy'])?>
+    <?= Html::img($model->getPreviewWebPath($fallbackWidth), [
+        'class' => $classImg,
+        'alt' => $alt,
+        'title' => $title,
+        'itemprop' => 'image',
+        'loading' => 'lazy'
+    ]) ?>
 </picture>
