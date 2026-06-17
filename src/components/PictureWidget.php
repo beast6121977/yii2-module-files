@@ -24,6 +24,7 @@ class PictureWidget extends Widget
     public $classImg;
     /** @var string */
     public $view = 'pictureWidget';
+    public $height = null;
 
     /**
      * @return string|null
@@ -44,6 +45,7 @@ class PictureWidget extends Widget
             'title' => $this->title,
             'classPicture' => $this->classPicture,
             'classImg' => $this->classImg,
+            'height' => $this->height,
         ]);
     }
 }

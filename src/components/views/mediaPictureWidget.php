@@ -22,6 +22,8 @@ if (!is_array($width)) {
     $width = [$width];
 }
 
+$height = $height ?? null;
+
 // Получаем последнее значение из массива для fallback изображения
 $widthValues = array_values($width);
 $fallbackWidth = !empty($widthValues) ? end($widthValues) : 0;
@@ -49,6 +51,7 @@ $fallbackWidth = !empty($widthValues) ? end($widthValues) : 0;
         'alt' => $alt,
         'title' => $title,
         'itemprop' => 'image',
-        'loading' => 'lazy'
+        'loading' => 'lazy',
+        'height' => $height,
     ]) ?>
 </picture>
