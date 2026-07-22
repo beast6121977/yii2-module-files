@@ -83,7 +83,7 @@ class Module extends \yii\base\Module
         $i18n->translations['files'] = [
             'class' => 'yii\i18n\PhpMessageSource',
             'sourceLanguage' => 'en-US',
-            'basePath' => '@modules/files/src/messages',
+            'basePath' => '@modules/files/messages',
         ];
     }
 

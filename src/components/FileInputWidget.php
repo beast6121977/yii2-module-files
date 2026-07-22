@@ -60,7 +60,7 @@ class FileInputWidget extends InputWidget
         $i18n->translations['files'] = [
             'class' => 'yii\i18n\PhpMessageSource',
             'sourceLanguage' => 'en-US',
-            'basePath' => '@vendor/floor12/yii2-module-files/src/messages',
+            'basePath' => '@modules/files/messages',
         ];
     }
 
