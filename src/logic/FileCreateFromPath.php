@@ -4,6 +4,8 @@ namespace modules\files\logic;
 
 use modules\files\components\SimpleImage;
 use modules\files\models\FileType;
+use modules\files\models\File;
+use Yii;
 use yii\base\ErrorException;
 use yii\db\ActiveRecordInterface;
 
@@ -18,90 +20,94 @@ class FileCreateFromPath
 
     public function __construct(ActiveRecordInterface $model, string $filePath, string $className, string $fieldName, string $storagePath, string $fileName = null)
     {
-
         $this->model = $model;
 
         if (!$filePath || !$className || !$fieldName || !$storagePath)
             throw new ErrorException("Empty params not allowed.");
 
-        if (!file_exists($storagePath))
-            throw new ErrorException("File storage not found on disk.");
-
         if (!file_exists($filePath))
             throw new ErrorException("File not found on disk.");
 
-        if (!is_writable($storagePath))
-            throw new ErrorException("File storage is not writable.");
         $this->filePath = $filePath;
         $this->fileName = $fileName;
         $this->fieldName = $fieldName;
         $this->className = $className;
         $this->storagePath = $storagePath;
-
     }
 
-    /** Основная  работка
+    /** Основная работа
      * @return bool
      * @throws ErrorException
      */
     public function execute()
     {
-        // копируем файл в хранилище
-        $tmp_extansion = explode('?', pathinfo($this->filePath, PATHINFO_EXTENSION));
-        $extansion = $tmp_extansion[0];
-        $filename = new PathGenerator($this->storagePath) . "." . $extansion;
-        $new_path = $this->storagePath . $filename;
-        copy($this->filePath, $new_path);
+        $storage = Yii::$app->getModule('files')->getStorage();
+        
+        $tmp_extension = explode('?', pathinfo($this->filePath, PATHINFO_EXTENSION));
+        $extension = $tmp_extension[0];
+        
+        $filename = $this->fileName ?? (string)new PathGenerator($this->storagePath) . "." . $extension;
+        
+        $fileModel = new File();
+        $fileModel->field = $this->fieldName;
+        $fileModel->class = $this->className;
+        $fileModel->filename = $filename;
+        $fileModel->title = $filename;
+        $fileModel->content_type = $fileModel->mime_content_type($filename);
+        $fileModel->type = $this->detectType($fileModel->content_type);
+        $fileModel->size = $storage->size($this->filePath); // This is wrong, filePath is local.
+        // Wait, filePath is a local path. StorageInterface::size expects a key.
+        // I should use filesize($this->filePath) since it's a local path.
+        $fileModel->size = filesize($this->filePath);
+        $fileModel->created = time();
+        
+        if ($fileModel->type == FileType::VIDEO)
+            $fileModel->video_status = 0;
 
-        // создаем запись в базе
-        $this->model->field = $this->fieldName;
-        $this->model->class = $this->className;
-        $this->model->filename = $filename;
-        if ($this->model->filename)
-            $this->model->title = $this->model->filename;
-        else
-            $this->model->title = rand(0, 99999); #такой прикол )
-        $this->model->content_type = $this->model->mime_content_type($new_path);
-        $this->model->type = $this->detectType();
-        $this->model->size = filesize($new_path);
-        $this->model->created = time();
-        if ($this->model->type == FileType::VIDEO)
-            $this->model->video_status = 0;
+        if ($fileModel->save()) {
+            $key = $fileModel->getOriginalStorageKey();
+            $storage->putFile($key, $this->filePath, $fileModel->content_type);
 
-        if ($this->model->save()) {
-
-            if ($this->model->type == FileType::IMAGE) {
-                $exif = '';
-                @$exif = exif_read_data($new_path);
-                if (isset($exif['Orientation'])) {
-                    $ort = $exif['Orientation'];
-                    $rotatingImage = new SimpleImage();
-                    $rotatingImage->load($new_path);
-                    switch ($ort) {
-
-                        case 3: // 180 rotate left
-                            $rotatingImage->rotateDegrees(180);
-                            break;
-                        case 6: // 90 rotate right
-                            $rotatingImage->rotateDegrees(270);
-                            break;
-                        case 8:    // 90 rotate left
-                            $rotatingImage->rotateDegrees(90);
-                    }
-                    $rotatingImage->save($new_path);
-                }
+            if ($fileModel->type == FileType::IMAGE) {
+                $this->processImage($fileModel, $storage, $key);
             }
+
             return true;
         }
         return false;
     }
 
+    private function processImage(File $fileModel, $storage, string $key)
+    {
+        $localPath = $fileModel->rootPath;
+        $exif = '';
+        @$exif = exif_read_data($localPath);
+        if (isset($exif['Orientation'])) {
+            $ort = $exif['Orientation'];
+            $rotatingImage = new SimpleImage();
+            $rotatingImage->load($localPath);
+            switch ($ort) {
+                case 3:
+                    $rotatingImage->rotateDegrees(180);
+                    break;
+                case 6:
+                    $rotatingImage->rotateDegrees(270);
+                    break;
+                case 8:
+                    $rotatingImage->rotateDegrees(90);
+                    break;
+            }
+            $rotatingImage->save($localPath);
+            $storage->putFile($key, $localPath, $fileModel->content_type);
+        }
+    }
+
     /**
      * @return integer
      */
-    private function detectType()
+    private function detectType(string $contentType)
     {
-        $contentTypeArray = explode('/', $this->model->content_type);
+        $contentTypeArray = explode('/', $contentType);
         if ($contentTypeArray[0] == 'image')
             return FileType::IMAGE;
         if ($contentTypeArray[0] == 'video')

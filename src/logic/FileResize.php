@@ -20,6 +20,7 @@ class FileResize
     private $_maxHeight;
     private $_compression;
     private $_imageType = IMAGETYPE_JPEG;
+    private $_localPath;
 
     /**
      * FileResize constructor.
@@ -29,20 +30,21 @@ class FileResize
      * @param int $compression качество jpeg
      * @throws ErrorException
      */
-    public function __construct(File $file, int $maxWidth, int $maxHeight, $compression = 60)
+    public function __construct(File $file, int $maxWidth, int $maxHeight, $compression = 60, string $localPath = null)
     {
         $this->_file = $file;
 
         if ($this->_file->type != FileType::IMAGE)
             throw new ErrorException('This file is not an image.');
 
-        if (!file_exists($this->_file->rootPath))
-            throw new ErrorException('File not found on disk');
+        $this->_localPath = $localPath ?? $this->_file->rootPath;
+
+        if (!file_exists($this->_localPath))
+            throw new ErrorException('File not found on disk: ' . $this->_localPath);
 
         $this->_maxHeight = $maxHeight;
         $this->_maxWidth = $maxWidth;
         $this->_compression = $compression;
-
     }
 
 
@@ -56,15 +58,27 @@ class FileResize
             return true;
 
         $image = new SimpleImage();
-        $image->load($this->_file->rootPath);
+        $image->load($this->_localPath);
 
         if ($image->getWidth() > $this->_maxWidth || $image->getHeight() > $this->_maxHeight) {
             $image->resizeToWidth($this->_maxWidth);
             if ($this->_file->content_type == 'image/png')
                 $this->_imageType = IMAGETYPE_PNG;
-            $image->save($this->_file->rootPath, $this->_imageType, $this->_compression);
-            $this->_file->size = filesize($this->_file->rootPath);
-            return $this->_file->save(false, ['size']);
+            
+            $image->save($this->_localPath, $this->_imageType, $this->_compression);
+            
+            $this->_file->size = filesize($this->_localPath);
+            $saved = $this->_file->save(false, ['size']);
+            
+            $storage = $this->_file->getStorage();
+            $storage->putFile(
+                $this->_file->getOriginalStorageKey(),
+                $this->_localPath,
+                $this->_file->content_type
+            );
+            $storage->deleteVariants($this->_file->filename);
+
+            return $saved;
         }
         return true;
     }

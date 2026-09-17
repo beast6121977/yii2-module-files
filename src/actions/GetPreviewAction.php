@@ -87,6 +87,11 @@ class GetPreviewAction extends Action
     {
         $filename = Yii::createObject(ImagePreviewer::class, [$this->model, $width, $webp])->getUrl();
 
+        if (is_string($filename) && filter_var($filename, FILTER_VALIDATE_URL)) {
+            Yii::$app->response->redirect($filename, 302)->send();
+            return;
+        }
+
         if (!file_exists($filename))
             throw new NotFoundHttpException('Запрашиваемый файл не найден на диске.');
 

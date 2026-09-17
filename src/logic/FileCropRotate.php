@@ -62,11 +62,18 @@ class FileCropRotate
 
         imagecopy($dest, $src, 0, 0, $this->_left, $this->_top, $this->_width, $this->_height);
 
-        $newName = new PathGenerator(Yii::$app->getModule('files')->storageFullPath) . '.jpeg';
+        $module = Yii::$app->getModule('files');
+        $isMinio = $module->storageDriver === 'minio';
+        $workingDirectory = $isMinio
+            ? rtrim($module->cacheFullPath, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'transforms'
+            : $module->storageFullPath;
+        $newName = new PathGenerator($workingDirectory) . '.jpeg';
 
-        $newPath = Yii::$app->getModule('files')->storageFullPath . '/' . $newName;
+        $newPath = $workingDirectory . '/' . $newName;
 
         $oldPath = $this->_file->rootPath;
+        $oldFilename = $this->_file->filename;
+        $oldContentType = $this->_file->content_type;
 
         imagejpeg($dest, $newPath, 80);
 
@@ -79,7 +86,20 @@ class FileCropRotate
         $this->_file->size = filesize($newPath);
         $this->_file->changeHash();
         if ($this->_file->save()) {
-            @unlink($oldPath);
+            if ($isMinio) {
+                $this->_file->getStorage()->putFile(
+                    $this->_file->getOriginalStorageKey(),
+                    $newPath,
+                    $this->_file->content_type
+                );
+                $this->_file->getStorage()->deleteVariants($this->_file->filename);
+                $this->_file->getStorage()->delete(
+                    $this->_file->getStorage()->originalKey($oldFilename, $oldContentType)
+                );
+                @unlink($newPath);
+            } else {
+                @unlink($oldPath);
+            }
             return $this->_file->href;
         } else
             throw new ErrorException("Error while saving file model.");

@@ -35,52 +35,126 @@ class ImagePreviewer
     }
 
     /**
-     * @return string
+     * @return string|null
      * @throws \ErrorException
      * @throws \yii\base\InvalidConfigException
      */
     public function getUrl()
     {
-        if ($this->model->isSvg())
-            return $this->model->getRootPath();
+        if (Yii::$app->getModule('files')->storageDriver === 'minio') {
+            return $this->getMinioUrl();
+        }
+
+        $filePath = $this->model->makeNameWithSize($this->model->filename, $this->width, $this->webp);
+        $storagePath = Yii::$app->getModule('files')->storageFullPath. DIRECTORY_SEPARATOR . $filePath;
 
         $cachePath = Yii::$app->getModule('files')->cacheFullPath;
-        $jpegName = $this->model->makeNameWithSize($this->model->filename, $this->width);
-        $webpName = $this->model->makeNameWithSize($this->model->filename, $this->width, true);
+        $name = $cachePath . DIRECTORY_SEPARATOR . $filePath;
 
-        $this->fileName = $cachePath . DIRECTORY_SEPARATOR . $jpegName;
-        $this->fileNameWebp = $cachePath . DIRECTORY_SEPARATOR . $webpName;
+        if (!file_exists($name)) {
+            if ($this->model->isSvg()) return $this->model->getRootPath();
 
+            $jpegName = $this->model->makeNameWithSize($this->model->filename, $this->width);
+            $webpName = $this->model->makeNameWithSize($this->model->filename, $this->width, true);
+
+            $this->fileName = $cachePath . DIRECTORY_SEPARATOR . $jpegName;
+            $this->fileNameWebp = $cachePath . DIRECTORY_SEPARATOR . $webpName;
+
+            $this->prepareFolder();
+
+            $sourceImagePath = $this->model->rootPath;
+            if ($this->model->isVideo()) {
+                $sourceImagePath = $this->fileName . '.jpeg';
+                if (!is_file($sourceImagePath))
+                    Yii::createObject(VideoFrameExtractor::class, [
+                        $this->model->rootPath,
+                        $sourceImagePath
+                    ])->extract();
+            }
+
+            if (file_exists($sourceImagePath)) {
+                if (!$this->webp) {
+                    if (!is_file($this->fileName) || filesize($this->fileName) == 0)
+                        $this->createPreview($sourceImagePath, $this->model->getWatermarkPath());
+                } else {
+                    if ($this->webp && !file_exists($this->fileNameWebp)) {
+                        $ext = strtolower(pathinfo($sourceImagePath, PATHINFO_EXTENSION));
+                        $isTransparentSource = in_array($ext, ['webp', 'png'], true)
+                            || in_array($this->model->content_type ?? '', ['image/webp', 'image/png'], true);
+
+                        if ($isTransparentSource && !$this->model->isVideo()) {
+                            $this->createPreviewWebpFromSource($sourceImagePath, $this->model->getWatermarkPath());
+                        } else {
+                            $this->createPreviewWebp($sourceImagePath, $this->model->getWatermarkPath());
+                        }
+                    }
+
+                    return $this->fileNameWebp;
+                }
+            }
+        }
+
+        return Yii::$app->getModule('files')->hostStatic.DIRECTORY_SEPARATOR.$filePath;
+//        return $name;
+    }
+
+    private function getMinioUrl(): ?string
+    {
+        if ($this->model->isSvg()) {
+            return $this->model->getRootPath();
+        }
+
+        $storage = $this->model->getStorage();
+        $storageKey = $this->model->getPreviewStorageKey($this->width, $this->webp);
+
+        if ($storage->has($storageKey)) {
+            return $storage->publicUrl($storageKey)
+                ?? $this->model->getStoragePreviewPath($this->width, $this->webp);
+        }
+
+        $cachePath = rtrim(Yii::$app->getModule('files')->cacheFullPath, DIRECTORY_SEPARATOR);
+        $this->fileName = $cachePath . DIRECTORY_SEPARATOR . $this->model->makeNameWithSize($this->model->filename, $this->width);
+        $this->fileNameWebp = $cachePath . DIRECTORY_SEPARATOR . $this->model->makeNameWithSize($this->model->filename, $this->width, true);
         $this->prepareFolder();
 
         $sourceImagePath = $this->model->rootPath;
         if ($this->model->isVideo()) {
             $sourceImagePath = $this->fileName . '.jpeg';
-            if (!is_file($sourceImagePath))
+            if (!is_file($sourceImagePath)) {
                 Yii::createObject(VideoFrameExtractor::class, [
                     $this->model->rootPath,
-                    $sourceImagePath
+                    $sourceImagePath,
                 ])->extract();
+            }
         }
 
-        if (!is_file($this->fileName) || filesize($this->fileName) == 0)
-            $this->createPreview($sourceImagePath, $this->model->getWatermarkPath());
+        if (!is_file($sourceImagePath)) {
+            return null;
+        }
 
-        if ($this->webp && !file_exists($this->fileNameWebp)) {
-            $ext = strtolower(pathinfo($this->model->rootPath, PATHINFO_EXTENSION));
+        if ($this->webp) {
+            $ext = strtolower(pathinfo($sourceImagePath, PATHINFO_EXTENSION));
             $isTransparentSource = in_array($ext, ['webp', 'png'], true)
                 || in_array($this->model->content_type ?? '', ['image/webp', 'image/png'], true);
             if ($isTransparentSource && !$this->model->isVideo()) {
                 $this->createPreviewWebpFromSource($sourceImagePath, $this->model->getWatermarkPath());
             } else {
-                $this->createPreviewWebp();
+                $this->createPreviewWebp($sourceImagePath, $this->model->getWatermarkPath());
             }
+            $outputPath = $this->fileNameWebp;
+            $contentType = 'image/webp';
+        } else {
+            $this->createPreview($sourceImagePath, $this->model->getWatermarkPath());
+            $outputPath = $this->fileName;
+            $contentType = 'image/jpeg';
         }
 
-        if ($this->webp)
-            return $this->fileNameWebp;
+        if (!is_file($outputPath) || filesize($outputPath) === 0) {
+            return null;
+        }
 
-        return $this->fileName;
+        $storage->putFile($storageKey, $outputPath, $contentType);
+        return $storage->publicUrl($storageKey) ?? $outputPath;
     }
 
     /**
@@ -88,19 +162,9 @@ class ImagePreviewer
      */
     protected function prepareFolder()
     {
-        if (!file_exists(Yii::$app->getModule('files')->cacheFullPath))
-            mkdir(Yii::$app->getModule('files')->cacheFullPath);
-        $lastFolder = '/';
-        $explodes = explode('/', $this->fileName);
-        array_pop($explodes);
-        if (empty($explodes))
-            return;
-        foreach ($explodes as $folder) {
-            if (empty($folder))
-                continue;
-            $lastFolder = $lastFolder . $folder . '/';
-            if (!file_exists($lastFolder))
-                mkdir($lastFolder);
+        $directory = dirname($this->fileName);
+        if (!is_dir($directory) && !mkdir($directory, 0775, true) && !is_dir($directory)) {
+            throw new ErrorException('Unable to create preview cache directory.');
         }
     }
 
@@ -133,10 +197,20 @@ class ImagePreviewer
     /**
      *  Create webp from default preview (jpeg)
      */
-    protected function createPreviewWebp()
+    protected function createPreviewWebp($source, $watermarkInPng = null)
     {
         $img = new SimpleImage();
-        $img->load($this->fileName);
+        $img->load($source);
+
+        if ($watermarkInPng) {
+            $img->watermark($watermarkInPng);
+        }
+
+        $imgWidth = $img->getWidth();
+        if ($this->width && $this->width < $imgWidth) {
+            $img->resizeToWidth($this->width);
+        }
+
         $img->save($this->fileNameWebp, IMAGETYPE_WEBP, 95);
     }
 

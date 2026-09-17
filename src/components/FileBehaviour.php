@@ -1,4 +1,5 @@
 <?php
+
 namespace modules\files\components;
 
 
@@ -59,20 +60,26 @@ class FileBehaviour extends Behavior
     }
 
     /**
-     * Метод сохранения в базу связей с файлами. Вызывается после сохранения основной модели AR.
+     * Метод сохранения в базу связей с файлами.
+     * Вызывается после сохранения основной модели AR.
+     *
      * @throws ErrorException
      * @throws \yii\db\Exception
      */
 
     public function filesSave()
     {
+        Yii::$app->db->enableSlaves = false;
+
         $order = 0;
         $ownerPrimaryKeyValue = $this->getOwnerPrimaryKeyValue();
+
         if ($this->_values) {
 
             foreach ($this->_values as $field => $ids) {
                 $ids = $this->normalizeIds($ids);
 
+                /** Отвязали все файлы от сущности*/
                 Yii::$app->db->createCommand()->update(
                     "{{%file_module}}",
                     ['object_id' => 0],
@@ -95,6 +102,8 @@ class FileBehaviour extends Behavior
                 }
             }
         }
+
+        Yii::$app->db->enableSlaves = true;
     }
 
     public function filesDelete()
@@ -208,7 +217,7 @@ class FileBehaviour extends Behavior
 
 
     /**
-     * @inheritdoc
+     * НЕ включать кеширование, иначе админка не сможет корректно отображать прикрепляемые картинки
      */
     public function __get($att_name)
     {

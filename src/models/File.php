@@ -5,7 +5,10 @@ namespace modules\files\models;
 use ErrorException;
 use modules\files\assets\IconHelper;
 use modules\files\components\FileBehaviour;
+use modules\files\logic\ImagePreviewer;
 use Yii;
+use modules\files\storage\StorageException;
+use modules\files\storage\StorageInterface;
 use yii\db\ActiveRecord;
 use yii\helpers\Url;
 
@@ -73,7 +76,13 @@ class File extends ActiveRecord
     public function changeHash()
     {
         $this->hash = md5(time() . rand(99999, 99999999));
+    }
 
+    public function setHash($imagePath)
+    {
+        $file = file_get_contents($imagePath);
+        $this->hash = hash_file('md5', $file);
+        unset($file);
     }
 
     /**
@@ -226,6 +235,10 @@ class File extends ActiveRecord
         if ($this->isSvg())
             return $this->getRootPath();
 
+        if ($this->usesMinioStorage()) {
+            return $this->getStoragePreviewPath(0, false);
+        }
+
         return Yii::$app->getModule('files')->storageFullPath . $this->filename . '.jpg';
     }
 
@@ -244,7 +257,31 @@ class File extends ActiveRecord
 
     public function getRootPath()
     {
+        if ($this->usesMinioStorage()) {
+            return $this->getMaterializedStoragePath($this->getOriginalStorageKey());
+        }
+
         return Yii::$app->getModule('files')->storageFullPath . DIRECTORY_SEPARATOR . $this->filename;
+    }
+
+    public function getStorage(): StorageInterface
+    {
+        return Yii::$app->getModule('files')->getStorage();
+    }
+
+    public function getOriginalStorageKey(): string
+    {
+        return $this->getStorage()->originalKey($this->filename, $this->content_type);
+    }
+
+    public function getPreviewStorageKey(int $width, bool $webp): string
+    {
+        return $this->getStorage()->previewKey($this->filename, $this->content_type, $width, $webp);
+    }
+
+    public function getStoragePreviewPath(int $width, bool $webp): string
+    {
+        return $this->getMaterializedStoragePath($this->getPreviewStorageKey($width, $webp), false);
     }
 
 
@@ -255,7 +292,40 @@ class File extends ActiveRecord
 
     public function getHref()
     {
+        if ($this->usesMinioStorage()) {
+            $publicUrl = $this->getStorage()->publicUrl($this->getOriginalStorageKey());
+            if ($publicUrl !== null) {
+                return $publicUrl;
+            }
+        }
+
         return Url::to(['/files/default/get', 'hash' => $this->hash, 'v' => $this->getDeliveryVersion()]);
+    }
+
+    public function getHrefPreview(int $width, bool $webp = false)
+    {
+        if ($this->usesMinioStorage()) {
+
+            $key = $this->getPreviewStorageKey($width, $webp);
+
+            if ($this->getStorage()->has($key)) {
+                $publicUrl = $this->getStorage()->publicUrl($this->getPreviewStorageKey($width, $webp));
+                if ($publicUrl !== null) {
+                    return $publicUrl;
+                }
+            } elseif ($webp === true) {
+                $this->getHrefPreview($width, false);
+            }
+
+            return '/img/no-photo.svg';
+        }
+
+        return Url::to(['/files/default/get',
+            'hash' => $this->hash,
+            'v' => $this->getDeliveryVersion(),
+            'width' => $width,
+            'webp' => $webp,
+        ]);
     }
 
     /**
@@ -282,6 +352,13 @@ class File extends ActiveRecord
      */
     public function deleteFiles()
     {
+        if ($this->usesMinioStorage()) {
+            $storage = $this->getStorage();
+            $storage->delete($this->getOriginalStorageKey());
+            $storage->deleteVariants($this->filename);
+            return;
+        }
+
         $extension = pathinfo($this->rootPath, PATHINFO_EXTENSION);
         array_map('unlink', glob(str_replace(".{$extension}", '*', $this->rootPath)));
     }
@@ -369,6 +446,13 @@ class File extends ActiveRecord
      */
     public function getPreviewWebPath(int $width = 0, bool $webp = false)
     {
+        if ($this->usesMinioStorage()) {
+            $publicUrl = $this->getStorage()->publicUrl($this->getPreviewStorageKey($width, $webp));
+            if ($publicUrl !== null) {
+                return $publicUrl;
+            }
+        }
+
         if (!file_exists($this->getRootPath()))
             return null;
 
@@ -397,6 +481,20 @@ class File extends ActiveRecord
     }
 
     /**
+     * @param int $width Ширина изображения
+     * @param bool $is_webp
+     * @return string|null
+     * @throws ErrorException
+     */
+    public function getUrl(int $width, bool $is_webp): ?string
+    {
+        $previewer = new ImagePreviewer($this, $width, $is_webp);
+        $url = $previewer->getUrl();
+        unset($previewer);
+        return $url;
+    }
+
+    /**
      * @return bool
      */
     public function isVideo(): bool
@@ -416,6 +514,7 @@ class File extends ActiveRecord
         $pathInfo = pathinfo($name);
         $directory = $pathInfo['dirname'] ?? '';
         $directory = $directory === '.' ? '' : $directory;
+        $directory = ltrim($directory, '/import_files');
         $basename = $pathInfo['filename'] ?? '';
         $watermarkSuffix = $this->shouldApplyWatermark() ? '_wm' . $this->getWatermarkSignature() : '';
         $targetExtension = $this->getPreviewExtension($webp);
@@ -500,6 +599,50 @@ class File extends ActiveRecord
             'jpg', 'jpeg' => 'jpeg',
             default => 'jpeg',
         };
+    }
+
+    private function usesMinioStorage(): bool
+    {
+        return Yii::$app->getModule('files')->storageDriver === 'minio';
+    }
+
+    private function getMaterializedStoragePath(string $key, bool $checkExists = true): string
+    {
+        $module = Yii::$app->getModule('files');
+        $extension = strtolower((string)pathinfo($key, PATHINFO_EXTENSION));
+        $cacheToken = $key . ':' . (string)$this->hash . ':' . (string)$this->size;
+        $filename = sha1($cacheToken) . ($extension !== '' ? '.' . $extension : '');
+        $directory = rtrim($module->cacheFullPath, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'objects';
+        $path = $directory . DIRECTORY_SEPARATOR . $filename;
+
+        if (is_file($path)) {
+            return $path;
+        }
+
+        try {
+            if ($checkExists && !$this->getStorage()->has($key)) {
+                return $path;
+            }
+
+            if (!is_dir($directory) && !mkdir($directory, 0775, true) && !is_dir($directory)) {
+                return $path;
+            }
+
+            $temporaryPath = $this->getStorage()->getToLocalPath($key);
+            try {
+                if (!copy($temporaryPath, $path)) {
+                    return $path;
+                }
+            } finally {
+                if (is_file($temporaryPath) && !str_starts_with($temporaryPath, $directory . DIRECTORY_SEPARATOR)) {
+                    unlink($temporaryPath);
+                }
+            }
+        } catch (StorageException $exception) {
+            Yii::warning('Unable to materialize storage object: ' . $exception->getMessage(), __METHOD__);
+        }
+
+        return $path;
     }
 
     protected function getBehaviorHostCandidates(): array

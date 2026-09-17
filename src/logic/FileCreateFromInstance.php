@@ -27,12 +27,10 @@ class FileCreateFromInstance
     private $_owner;
     private $_attribute;
     private $_instance;
-    private $_fullPath;
     private $_onlyUploaded;
 
     public function __construct(UploadedFile $file, array $data, IdentityInterface $identity = null, $onlyUploaded = true)
     {
-
         $this->_onlyUploaded = $onlyUploaded;
 
         if (!isset($data['attribute']) || !$data['attribute'] || !isset($data['modelClass']) || !$data['modelClass'])
@@ -51,7 +49,6 @@ class FileCreateFromInstance
         if (isset($data['scenario']))
             $this->_owner->setScenario($data['scenario']);
 
-
         if (isset($this->_owner->behaviors['files']->attributes[$this->_attribute]['validator'])) {
             foreach ($this->_owner->behaviors['files']->attributes[$this->_attribute]['validator'] as $validator) {
                 if ($validator->maxFiles && (int)$data['count'] > $validator->maxFiles) {
@@ -61,7 +58,6 @@ class FileCreateFromInstance
                 if (!$validator->validate($this->_instance, $error))
                     throw new BadRequestHttpException($error);
             }
-
         }
 
         // Создаем модель нового файла и заполняем первоначальными данными
@@ -69,7 +65,6 @@ class FileCreateFromInstance
         $this->_model->created = time();
         $this->_model->field = $this->_attribute;
         
-        // Используем baseClass из behavior, если он указан, иначе используем modelClass
         $modelClass = $data['modelClass'];
         if (isset($this->_owner->behaviors['files']) && 
             isset($this->_owner->behaviors['files']->baseClass) && 
@@ -78,7 +73,7 @@ class FileCreateFromInstance
         }
         $this->_model->class = $modelClass;
 
-        $this->_model->filename = new PathGenerator(Yii::$app->getModule('files')->storageFullPath) . '.' . $this->_instance->extension;
+        $this->_model->filename = (string)new PathGenerator(Yii::$app->getModule('files')->storageFullPath) . '.' . $this->_instance->extension;
         $this->_model->title = $this->_instance->name;
         $this->_model->content_type = \yii\helpers\FileHelper::getMimeType($this->_instance->tempName);
         $this->_model->size = $this->_instance->size;
@@ -87,14 +82,8 @@ class FileCreateFromInstance
             $this->_model->user_id = $identity->getId();
         if ($this->_model->type == FileType::VIDEO)
             $this->_model->video_status = 0;
-
-        //Генерируем полный новый адрес сохранения файла
-        $this->_fullPath = Yii::$app->getModule('files')->storageFullPath . DIRECTORY_SEPARATOR . $this->_model->filename;
     }
 
-    /**
-     * @return string
-     */
     public function detectType()
     {
         $contentTypeArray = explode('/', $this->_model->content_type);
@@ -105,19 +94,22 @@ class FileCreateFromInstance
         return FileType::FILE;
     }
 
-    /**
-     * @return File
-     */
-
     public function execute()
     {
-        $path = Yii::$app->getModule('files')->storageFullPath . $this->_model->filename;
-
         if ($this->_model->save()) {
-            if (!$this->_onlyUploaded)
-                copy($this->_instance->tempName, $this->_fullPath);
-            else
-                $this->_instance->saveAs($this->_fullPath, false);
+            $storage = $this->_model->getStorage();
+            $key = $this->_model->getOriginalStorageKey();
+
+            $storage->putFile(
+                $key,
+                $this->_instance->tempName,
+                $this->_model->content_type
+            );
+
+            if (!$storage->has($key)) {
+                Yii::error("File was put to storage but is not found: " . $key, 'files');
+                throw new \yii\web\BadRequestHttpException("File upload failed: object not found in storage.");
+            }
         }
 
         if ($this->_model->type == FileType::IMAGE) {
@@ -128,29 +120,33 @@ class FileCreateFromInstance
         return $this->_model;
     }
 
-
     protected function rotateAfterUpload()
     {
+        $storage = $this->_model->getStorage();
+        $key = $this->_model->getOriginalStorageKey();
+        
+        $localPath = $this->_model->rootPath; 
+        
         $exif = '';
-        @$exif = exif_read_data($this->_fullPath);
+        @$exif = exif_read_data($localPath);
         if (isset($exif['Orientation'])) {
             $ort = $exif['Orientation'];
             $rotatingImage = new SimpleImage();
-            $rotatingImage->load($this->_fullPath);
+            $rotatingImage->load($localPath);
             switch ($ort) {
-                case 3: // 180 rotate left
+                case 3:
                     $rotatingImage->rotateDegrees(180);
-                    $rotatingImage->save($this->_fullPath);
                     break;
-                case 6: // 90 rotate right
+                case 6:
                     $rotatingImage->rotateDegrees(270);
-                    $rotatingImage->save($this->_fullPath);
                     break;
-                case 8:    // 90 rotate left
+                case 8:
                     $rotatingImage->rotateDegrees(90);
-                    $rotatingImage->save($this->_fullPath);
+                    break;
             }
-
+            $rotatingImage->save($localPath);
+            
+            $storage->putFile($key, $localPath, $this->_model->content_type);
         }
     }
 
@@ -163,6 +159,5 @@ class FileCreateFromInstance
             $resizer = new FileResize($this->_model, $maxWidth, $maxHeight);
             $resizer->execute();
         }
-
     }
 }
