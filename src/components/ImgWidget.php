@@ -37,11 +37,14 @@ class ImgWidget extends Widget
             $src = $storage->publicUrl($previewKey);
         } else {
             $originalKey = 'originals' . DIRECTORY_SEPARATOR . basename($this->src);
-            $type = $storage->mime($originalKey);
-            $previewKey = $storage->previewKey($this->src, $type, $this->width, false);
 
-            if ($storage->has($previewKey)) {
-                $src = $storage->publicUrl($previewKey);
+            if ($storage->has($originalKey)) {
+                $type = $storage->mime($originalKey);
+                $previewKey = $storage->previewKey($this->src, $type, $this->width, false);
+
+                if ($storage->has($previewKey)) {
+                    $src = $storage->publicUrl($previewKey);
+                }
             }
         }
 

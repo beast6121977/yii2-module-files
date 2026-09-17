@@ -55,9 +55,6 @@ class FileCreateFromPath
         $fileModel->title = $filename;
         $fileModel->content_type = $fileModel->mime_content_type($filename);
         $fileModel->type = $this->detectType($fileModel->content_type);
-        $fileModel->size = $storage->size($this->filePath); // This is wrong, filePath is local.
-        // Wait, filePath is a local path. StorageInterface::size expects a key.
-        // I should use filesize($this->filePath) since it's a local path.
         $fileModel->size = filesize($this->filePath);
         $fileModel->created = time();
         
@@ -68,8 +65,11 @@ class FileCreateFromPath
             $key = $fileModel->getOriginalStorageKey();
             $storage->putFile($key, $this->filePath, $fileModel->content_type);
 
-            if ($fileModel->type == FileType::IMAGE) {
-                $this->processImage($fileModel, $storage, $key);
+            if ($fileModel->type == FileType::IMAGE || $fileModel->type == FileType::VIDEO) {
+                if ($fileModel->type == FileType::IMAGE) {
+                    $this->processImage($fileModel, $storage, $key);
+                }
+                $fileModel->createPreviews();
             }
 
             return true;

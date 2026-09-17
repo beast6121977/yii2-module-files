@@ -1,4 +1,5 @@
 <?php
+
 namespace modules\files\models;
 
 
@@ -40,17 +41,10 @@ class File extends ActiveRecord
     private const WATERMARK_SIGNATURE_VERSION = 'v2';
 
 
-    /**
-     * {@inheritdoc}
-     */
     public static function getDb()
     {
         return Yii::$app->getModule('files')->db;
     }
-
-    /**
-     * @inheritdoc
-     */
 
     public static function tableName()
     {
@@ -95,10 +89,10 @@ class File extends ActiveRecord
         if ($this->content_type == 'application/vnd.openxmlformats-officedocument.wordprocessingml.document')
             $icon = IconHelper::FILE_WORD;
 
-        if ($this->content_type == 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        if ($this->content_type == 'application/vnd.openxmlformats-officedocument.spreadsheetml.document')
             $icon = IconHelper::FILE_EXCEL;
 
-        if ($this->content_type == 'application/vnd.openxmlformats-officedocument.presentationml.presentation')
+        if ($this->content_type == 'application/vnd.openxmlformats-officedocument.presentationml.document')
             $icon = IconHelper::FILE_POWERPOINT;
 
         if ($this->content_type == 'application/x-zip-compressed')
@@ -192,9 +186,6 @@ class File extends ActiveRecord
         }
     }
 
-    /**
-     * @inheritdoc
-     */
 
     public function rules()
     {
@@ -205,9 +196,6 @@ class File extends ActiveRecord
         ];
     }
 
-    /**
-     * @inheritdoc
-     */
 
     public function attributeLabels()
     {
@@ -221,6 +209,7 @@ class File extends ActiveRecord
             'content_type' => Yii::t('app', 'Con tent Type'),
             'type' => Yii::t('app', 'Type'),
             'video_status' => Yii::t('app', 'Video Status'),
+            'ordering' => Yii::t('app', 'Ordering'),
             'alt' => Yii::t('app', 'Alternative title'),
         ];
     }
@@ -439,9 +428,9 @@ class File extends ActiveRecord
 
     /**
      * Return webp path to preview
-     * @param int $width
-     * @param bool $webp
-     * @return string
+     * @param int $width = 0
+     * @param bool $webp = false
+     * @return string|null
      * @throws ErrorException
      */
     public function getPreviewWebPath(int $width = 0, bool $webp = false)
@@ -505,11 +494,11 @@ class File extends ActiveRecord
     /**
      * Creates file paths to file versions
      * @param $name
-     * @param int $width
-     * @param bool $webp
+     * @param int $width = 0
+     * @param bool $webp = false
      * @return string
      */
-    public function makeNameWithSize($name, $width = 0, $webp = false)
+    public function makeNameWithSize($name, int $width = 0, bool $webp = false): string
     {
         $pathInfo = pathinfo($name);
         $directory = $pathInfo['dirname'] ?? '';
@@ -523,19 +512,19 @@ class File extends ActiveRecord
             . $basename
             . $watermarkSuffix
             . '_w'
-            . (int)$width
+            . $width
             . '.'
             . $targetExtension;
     }
 
     /**
      * Returns full path to custom preview version
-     * @param int $width
-     * @param bool $webp
+     * @param int $width = 0
+     * @param bool $webp = false
      * @return string
      * @throws ErrorException
      */
-    public function getPreviewRootPath($width = 0, $webp = false)
+    public function getPreviewRootPath(int $width = 0, bool $webp = false): string
     {
         if (!$this->isVideo() && !$this->isImage())
             throw new ErrorException('Requiested file is not an image and its implsible to resize it.');
@@ -726,4 +715,44 @@ class File extends ActiveRecord
         return $behavior instanceof FileBehaviour ? $behavior : null;
     }
 
+    public function createPreviews()
+    {
+        if (!$this->isImage() && !$this->isVideo()) {
+            return;
+        }
+
+        $module = \Yii::$app->getModule('files');
+        $storage = $this->getStorage();
+        $localPath = $this->getRootPath();
+
+        if (!file_exists($localPath)) {
+            return;
+        }
+
+        $sourcePath = $localPath;
+        $framePath = null;
+        if ($this->isVideo()) {
+            $framePath = $localPath . '.jpeg';
+            if (!is_file($framePath)) {
+                \Yii::createObject(\modules\files\logic\VideoFrameExtractor::class, [
+                    $localPath,
+                    $framePath
+                ])->extract();
+            }
+            $sourcePath = $framePath;
+        }
+
+        if (!file_exists($sourcePath)) {
+            return;
+        }
+
+        foreach ($module->previewWidths as $width) {
+            $storage->generatePreview($sourcePath, $width, false);
+            $storage->generatePreview($sourcePath, $width, true);
+        }
+
+        if ($framePath && is_file($framePath)) {
+            unlink($framePath);
+        }
+    }
 }

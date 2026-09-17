@@ -112,9 +112,12 @@ class FileCreateFromInstance
             }
         }
 
-        if ($this->_model->type == FileType::IMAGE) {
-            $this->rotateAfterUpload();
-            $this->resizeAfterUpload();
+        if ($this->_model->type == FileType::IMAGE || $this->_model->type == FileType::VIDEO) {
+            if ($this->_model->type == FileType::IMAGE) {
+                $this->rotateAfterUpload();
+                $this->resizeAfterUpload();
+            }
+            $this->_model->createPreviews();
         }
 
         return $this->_model;
