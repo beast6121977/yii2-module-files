@@ -71,3 +71,25 @@ div.files-block {
     }
   }
 }
+
+.files {
+  &-btn {
+    &-group {
+      &:hover {
+        .dropdown-menu-file-object {
+          display: block;
+        }
+      }
+    }
+  }
+}
+
+.dropdown {
+  &-menu {
+    &-file {
+      &-object {
+        cursor: pointer;
+      }
+    }
+  }
+}

@@ -4,6 +4,7 @@ namespace modules\files\components;
 
 
 use modules\files\models\File;
+use Override;
 use Yii;
 use yii\base\Behavior;
 use yii\base\ErrorException;
@@ -195,19 +196,22 @@ class FileBehaviour extends Behavior
 
 
     /**
-     * @inheritdoc
+     * @param $name
+     * @param $checkVars
+     * @return bool
      */
-    public function canGetProperty($name, $checkVars = true)
+    #[Override] public function canGetProperty($name, $checkVars = true)
     {
-        return array_key_exists($name, $this->attributes) ?
-            true : parent::canGetProperty($name, $checkVars);
+        return array_key_exists($name, $this->attributes) || parent::canGetProperty($name, $checkVars);
     }
 
 
     /**
-     * @inheritdoc
+     * @param $name
+     * @param $checkVars
+     * @return bool
      */
-    public function canSetProperty($name, $checkVars = true)
+    #[Override] public function canSetProperty($name, $checkVars = true)
     {
         if (array_key_exists($this->getRealAttributeName($name), $this->attributes))
             return true;
@@ -260,9 +264,6 @@ class FileBehaviour extends Behavior
     }
 
 
-    /**
-     * @inheritdoc
-     */
     public
     function __set($name, $value)
     {

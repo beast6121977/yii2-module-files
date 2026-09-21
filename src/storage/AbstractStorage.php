@@ -2,8 +2,11 @@
 
 namespace modules\files\storage;
 
+use Yii;
 use modules\files\components\SimpleImage;
 use yii\base\ErrorException;
+use yii\console\Application;
+use yii\helpers\Console;
 
 abstract class AbstractStorage implements StorageInterface
 {
@@ -47,16 +50,6 @@ abstract class AbstractStorage implements StorageInterface
     {
     }
 
-    public function originalKey(string $filename, string $type): string
-    {
-        return 'originals';
-    }
-
-    public function previewKey(string $filename, string $type, int $width, bool $webp): string
-    {
-        return 'previews';
-    }
-
     public function publicUrl(string $key): ?string
     {
         return null;
@@ -78,8 +71,6 @@ abstract class AbstractStorage implements StorageInterface
                 $this->createPreview($imagePath, $jpegName, $width, $this->module->watermark);
                 $type = mime_content_type($jpegName);
 
-
-
                 $previewKey = $this->storage->previewKey(basename($imagePath), $type, $width, false);
                 $this->storage->putFile($previewKey, $jpegName, $type);
             } else {
@@ -97,6 +88,14 @@ abstract class AbstractStorage implements StorageInterface
                     $this->storage->putFile($previewKey, $webpName, 'image/webp');
                 }
             }
+
+            if (!YII_ENV_PROD && (Yii::$app instanceof Application)) {
+                Console::output(Console::ansiFormat(
+                    "Создано превью: {$jpegName}, {$webpName}",
+                    [Console::FG_GREEN]
+                ));
+            }
+
         endif;
     }
 
@@ -317,12 +316,6 @@ abstract class AbstractStorage implements StorageInterface
     }
 
 
-    protected function filenameWithoutExtension(string $filename): string
-    {
-        $normalized = $this->normalizeKey($filename);
-        return pathinfo($normalized, PATHINFO_FILENAME);
-    }
-
     /**
      * @param string $key
      * @return string
@@ -353,5 +346,73 @@ abstract class AbstractStorage implements StorageInterface
         }
 
         return implode('/', $normalized);
+    }
+
+    /**
+     * @param string $filename желательно только название файла
+     * @param string $type
+     * @param int $width
+     * @param bool $webp
+     * @return string
+     */
+    public function previewKey(string $filename, string $type, int $width, bool $webp): string
+    {
+        if ($width <= 0) {
+            throw new StorageException('Preview width must be positive.');
+        }
+
+        $extension = $this->getExtension($type, $webp);
+
+        return sprintf(
+            'previews/%s/%d.%s',
+            $this->filenameWithoutExtension($filename),
+            $width,
+            $extension
+        );
+    }
+
+    public function originalKey(string $filename, string $type): string
+    {
+        return sprintf(
+            'originals/%s',
+            $this->filenameWithExtension($filename)
+        );
+    }
+
+    private function getExtension(string $type, bool $webp = false): string
+    {
+        $extension = 'webp';
+        if ($webp) return $extension;
+
+
+        /**Если у оригинального файла расширение jpeg, то ключ сформируется неправильно*/
+        switch ($type) {
+            case 'image/jpeg':
+                $extension = 'jpg';
+                break;
+            case 'image/png':
+                $extension = 'png';
+                break;
+            case 'image/gif':
+                $extension = 'gif';
+                break;
+            case 'image/webp':
+                $extension = 'webp';
+                break;
+        }
+
+        return $extension;
+    }
+
+    protected function filenameWithExtension(string $filename): string
+    {
+        $normalized = $this->normalizeKey($filename);
+        return pathinfo($normalized, PATHINFO_BASENAME);
+    }
+
+    protected function filenameWithoutExtension(string $filename): string
+    {
+        $normalized = $this->normalizeKey($filename);
+        return pathinfo($normalized, PATHINFO_FILENAME);
     }
 }

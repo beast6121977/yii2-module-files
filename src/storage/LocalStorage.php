@@ -157,20 +157,6 @@ class LocalStorage extends AbstractStorage implements StorageInterface
         return 'originals/' . $this->normalizeKey($filename);
     }
 
-    public function previewKey(string $filename, string $type,  int $width, bool $webp): string
-    {
-        if ($width <= 0) {
-            throw new StorageException('Preview width must be positive.');
-        }
-
-        return sprintf(
-            'previews/%s/%d.%s',
-            $this->normalizeKey($filename),
-            $width,
-            $webp ? 'webp' : 'jpg'
-        );
-    }
-
     public function publicUrl(string $key): ?string
     {
         return null;
@@ -179,32 +165,5 @@ class LocalStorage extends AbstractStorage implements StorageInterface
     private function pathFor(string $key): string
     {
         return $this->rootPath . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $this->normalizeKey($key));
-    }
-
-    private function normalizeKey(string $key): string
-    {
-        if (strpos($key, "\0") !== false) {
-            throw new StorageException('Storage key contains a null byte.');
-        }
-
-        $parts = explode('/', str_replace('\\', '/', $key));
-        $normalized = [];
-        foreach ($parts as $part) {
-            if ($part === '' || $part === '.') {
-                continue;
-            }
-
-            if ($part === '..') {
-                throw new StorageException('Storage key traversal is not allowed.');
-            }
-
-            $normalized[] = $part;
-        }
-
-        if ($normalized === []) {
-            throw new StorageException('Storage key must not be empty.');
-        }
-
-        return implode('/', $normalized);
     }
 }

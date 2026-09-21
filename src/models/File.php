@@ -10,6 +10,7 @@ use modules\files\logic\ImagePreviewer;
 use Yii;
 use modules\files\storage\StorageException;
 use modules\files\storage\StorageInterface;
+use yii\base\InvalidConfigException;
 use yii\db\ActiveRecord;
 use yii\helpers\Url;
 
@@ -250,7 +251,7 @@ class File extends ActiveRecord
             return $this->getMaterializedStoragePath($this->getOriginalStorageKey());
         }
 
-        return Yii::$app->getModule('files')->storageFullPath . DIRECTORY_SEPARATOR . $this->filename;
+        return Yii::$app->getModule('files')->storageFullPath . DIRECTORY_SEPARATOR . $this->getOriginalStorageKey();
     }
 
     public function getStorage(): StorageInterface
@@ -715,7 +716,13 @@ class File extends ActiveRecord
         return $behavior instanceof FileBehaviour ? $behavior : null;
     }
 
-    public function createPreviews()
+    /**
+     * Генерирует превью для загруженного файла
+     * @return void
+     * @throws ErrorException
+     * @throws InvalidConfigException
+     */
+    public function createPreviews(): void
     {
         if (!$this->isImage() && !$this->isVideo()) {
             return;
@@ -723,19 +730,18 @@ class File extends ActiveRecord
 
         $module = \Yii::$app->getModule('files');
         $storage = $this->getStorage();
-        $localPath = $this->getRootPath();
+        $sourcePath = $this->getRootPath();
 
-        if (!file_exists($localPath)) {
+        if (!file_exists($sourcePath)) {
             return;
         }
 
-        $sourcePath = $localPath;
         $framePath = null;
         if ($this->isVideo()) {
-            $framePath = $localPath . '.jpeg';
+            $framePath = $sourcePath . '.jpeg';
             if (!is_file($framePath)) {
                 \Yii::createObject(\modules\files\logic\VideoFrameExtractor::class, [
-                    $localPath,
+                    $sourcePath,
                     $framePath
                 ])->extract();
             }
@@ -754,5 +760,11 @@ class File extends ActiveRecord
         if ($framePath && is_file($framePath)) {
             unlink($framePath);
         }
+    }
+
+    public function getPublicSrc($width, $webp)
+    {
+        $module = \Yii::$app->getModule('files');
+        return $module->hostStatic . DIRECTORY_SEPARATOR . $this->getPreviewStorageKey($width, $webp);
     }
 }

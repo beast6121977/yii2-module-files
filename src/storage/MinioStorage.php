@@ -196,63 +196,6 @@ final class MinioStorage extends AbstractStorage implements StorageInterface
         }
     }
 
-    public function originalKey(string $filename, string $type): string
-    {
-        return sprintf(
-            'originals/%s',
-            $this->filenameWithExtension($filename)
-        );
-    }
-
-
-    private function getExtension(string $type, bool $webp = false): string
-    {
-        $extension = 'webp';
-        if ($webp) return $extension;
-
-
-        /**Если у оригинального файла расширение jpeg, то ключ сформируется неправильно*/
-        switch ($type) {
-            case 'image/jpeg':
-                $extension = 'jpg';
-                break;
-            case 'image/png':
-                $extension = 'png';
-                break;
-            case 'image/gif':
-                $extension = 'gif';
-                break;
-            case 'image/webp':
-                $extension = 'webp';
-                break;
-        }
-
-        return $extension;
-    }
-
-    /**
-     * @param string $filename желательно только название файла
-     * @param string $type
-     * @param int $width
-     * @param bool $webp
-     * @return string
-     */
-    public function previewKey(string $filename, string $type, int $width, bool $webp): string
-    {
-        if ($width <= 0) {
-            throw new StorageException('Preview width must be positive.');
-        }
-
-        $extension = $this->getExtension($type, $webp);
-
-        return sprintf(
-            'previews/%s/%d.%s',
-            $this->filenameWithoutExtension($filename),
-            $width,
-            $extension
-        );
-    }
-
     public function publicUrl(string $key): ?string
     {
         if ($this->publicBaseUrl === '') {
@@ -263,12 +206,5 @@ final class MinioStorage extends AbstractStorage implements StorageInterface
         $encodedKey = implode('/', array_map('rawurlencode', explode('/', $normalizedKey)));
 
         return $this->publicBaseUrl . '/' . $encodedKey;
-    }
-
-
-    private function filenameWithExtension(string $filename): string
-    {
-        $normalized = $this->normalizeKey($filename);
-        return pathinfo($normalized, PATHINFO_BASENAME);
     }
 }
