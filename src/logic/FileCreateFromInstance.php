@@ -28,7 +28,7 @@ class FileCreateFromInstance
     public function __construct(UploadedFile $file, array $data, IdentityInterface $identity = null, $onlyUploaded = true)
     {
         $this->_onlyUploaded = $onlyUploaded;
-        $this->maxWidth = $data['max_width'] ?? null;
+        $this->maxWidth = intval($data['max_width']) ?? null;
 
         if (!isset($data['attribute']) || !$data['attribute'] || !isset($data['modelClass']) || !$data['modelClass'])
             throw new BadRequestHttpException("Attribute or class name not set.");

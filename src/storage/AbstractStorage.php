@@ -58,7 +58,12 @@ abstract class AbstractStorage implements StorageInterface
     /**
      * @throws ErrorException
      */
-    public function generatePreview(string $imagePath, int $width = 0, bool $is_webp = false): void
+    public function generatePreview(
+        string $imagePath,
+        int $width = 0,
+        bool $is_webp = false,
+        ?string $storageFilename = null
+    ): void
     {
         $this->module = \Yii::$app->getModule('files');
 
@@ -71,7 +76,12 @@ abstract class AbstractStorage implements StorageInterface
                 $this->createPreview($imagePath, $jpegName, $width, $this->module->watermark);
                 $type = mime_content_type($jpegName);
 
-                $previewKey = $this->storage->previewKey(basename($imagePath), $type, $width, false);
+                $previewKey = $this->storage->previewKey(
+                    $storageFilename ?? basename($imagePath),
+                    $type,
+                    $width,
+                    false
+                );
                 $this->storage->putFile($previewKey, $jpegName, $type);
             } else {
                 if ($is_webp && !file_exists($webpName)) {
@@ -84,7 +94,12 @@ abstract class AbstractStorage implements StorageInterface
                     } else {
                         $this->createPreviewWebp($imagePath, $webpName, $width, $this->module->watermark);
                     }
-                    $previewKey = $this->storage->previewKey(basename($imagePath), 'image/webp', $width, true);
+                    $previewKey = $this->storage->previewKey(
+                        $storageFilename ?? basename($imagePath),
+                        'image/webp',
+                        $width,
+                        true
+                    );
                     $this->storage->putFile($previewKey, $webpName, 'image/webp');
                 }
             }

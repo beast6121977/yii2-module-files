@@ -731,11 +731,9 @@ class File extends ActiveRecord
 
         $module = \Yii::$app->getModule('files');
         $storage = $this->getStorage();
-        $sourcePath = $this->getRootPath();
+        $originalWidth = 2500;
 
-        if (!file_exists($sourcePath)) {
-            return;
-        }
+        $sourcePath = $this->getRootPath();
 
         $framePath = null;
         if ($this->isVideo()) {
@@ -749,12 +747,14 @@ class File extends ActiveRecord
             $sourcePath = $framePath;
         }
 
-        if (!file_exists($sourcePath)) {
-            return;
-        }
+        if ($module->storageDriver === 'local') {
+            if (!file_exists($sourcePath)) {
+                return;
+            }
 
-        $originalSize = getimagesize($sourcePath);
-        $originalWidth = $originalSize[0];
+            $originalSize = getimagesize($sourcePath);
+            $originalWidth = $originalSize[0];
+        }
 
         if ($maxWidth === null) {
             $behavior = $this->getFilesBehavior();
@@ -767,8 +767,8 @@ class File extends ActiveRecord
             }
 
             if ($width < $originalWidth) {
-                $storage->generatePreview($sourcePath, $width, false);
-                $storage->generatePreview($sourcePath, $width, true);
+                $storage->generatePreview($sourcePath, $width, false, $this->filename);
+                $storage->generatePreview($sourcePath, $width, true, $this->filename);
             }
         }
 
