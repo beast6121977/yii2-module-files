@@ -207,9 +207,9 @@ class File extends ActiveRecord
             'object_id' => Yii::t('app', 'Object ID'),
             'title' => Yii::t('app', 'Title'),
             'filename' => Yii::t('app', 'Filename'),
-            'content_type' => Yii::t('app', 'Con tent Type'),
+            'content_type' => Yii::t('app', 'Content Type'),
             'type' => Yii::t('app', 'Type'),
-            'video_status' => Yii::t('app', 'Video Status'),
+            'video_status' => Yii::t('app', 'Video status'),
             'ordering' => Yii::t('app', 'Ordering'),
             'alt' => Yii::t('app', 'Alternative title'),
         ];
@@ -386,7 +386,7 @@ class File extends ActiveRecord
     /**
      * @return string|null
      */
-    public function getWatermark()
+    public function getWatermark(): ?string
     {
         return $this->getWatermarkPath();
     }
@@ -494,7 +494,7 @@ class File extends ActiveRecord
 
     /**
      * Creates file paths to file versions
-     * @param $name
+     * @param string $name
      * @param int $width = 0
      * @param bool $webp = false
      * @return string
@@ -599,7 +599,7 @@ class File extends ActiveRecord
     private function getMaterializedStoragePath(string $key, bool $checkExists = true): string
     {
         $module = Yii::$app->getModule('files');
-        $extension = strtolower((string)pathinfo($key, PATHINFO_EXTENSION));
+        $extension = strtolower(pathinfo($key, PATHINFO_EXTENSION));
         $cacheToken = $key . ':' . (string)$this->hash . ':' . (string)$this->size;
         $filename = sha1($cacheToken) . ($extension !== '' ? '.' . $extension : '');
         $directory = rtrim($module->cacheFullPath, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'objects';
@@ -692,7 +692,7 @@ class File extends ActiveRecord
 
         $secondaryTargets = $preferBackend
             ? ['\\backend\\', '\\frontend\\', '\\api\\']
-            : ['\\frontend\\', '\\backend\\', '\\api\\'];
+            : ['\\backend\\', '\\frontend\\', '\\api\\'];
 
         return [
             '\\common\\models\\' => $primaryTargets,
@@ -718,11 +718,12 @@ class File extends ActiveRecord
 
     /**
      * Генерирует превью для загруженного файла
+     * @param int|null $maxWidth = null
      * @return void
      * @throws ErrorException
      * @throws InvalidConfigException
      */
-    public function createPreviews(): void
+    public function createPreviews(?int $maxWidth = null): void
     {
         if (!$this->isImage() && !$this->isVideo()) {
             return;
@@ -752,9 +753,23 @@ class File extends ActiveRecord
             return;
         }
 
+        $originalSize = getimagesize($sourcePath);
+        $originalWidth = $originalSize[0];
+
+        if ($maxWidth === null) {
+            $behavior = $this->getFilesBehavior();
+            $maxWidth = $behavior->attributes[$this->field]['maxWidth'] ?? null;
+        }
+
         foreach ($module->previewWidths as $width) {
-            $storage->generatePreview($sourcePath, $width, false);
-            $storage->generatePreview($sourcePath, $width, true);
+            if ($maxWidth > 0 && $width > $maxWidth) {
+                continue;
+            }
+
+            if ($width < $originalWidth) {
+                $storage->generatePreview($sourcePath, $width, false);
+                $storage->generatePreview($sourcePath, $width, true);
+            }
         }
 
         if ($framePath && is_file($framePath)) {

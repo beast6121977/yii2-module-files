@@ -1,11 +1,4 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: floor12
- * Date: 01.01.2018
- * Time: 12:56
- */
-
 namespace modules\files\logic;
 
 use modules\files\components\SimpleImage;
@@ -13,6 +6,8 @@ use modules\files\models\File;
 use modules\files\models\FileType;
 use Yii;
 use yii\base\ErrorException;
+use yii\base\InvalidConfigException;
+use yii\db\Exception;
 use yii\web\BadRequestHttpException;
 use yii\web\IdentityInterface;
 use yii\web\UploadedFile;
@@ -28,10 +23,12 @@ class FileCreateFromInstance
     private $_attribute;
     private $_instance;
     private $_onlyUploaded;
+    private $maxWidth;
 
     public function __construct(UploadedFile $file, array $data, IdentityInterface $identity = null, $onlyUploaded = true)
     {
         $this->_onlyUploaded = $onlyUploaded;
+        $this->maxWidth = $data['max_width'] ?? null;
 
         if (!isset($data['attribute']) || !$data['attribute'] || !isset($data['modelClass']) || !$data['modelClass'])
             throw new BadRequestHttpException("Attribute or class name not set.");
@@ -94,6 +91,12 @@ class FileCreateFromInstance
         return FileType::FILE;
     }
 
+    /**
+     * @throws Exception
+     * @throws InvalidConfigException
+     * @throws \ErrorException
+     * @throws BadRequestHttpException
+     */
     public function execute()
     {
         if ($this->_model->save()) {
@@ -117,7 +120,7 @@ class FileCreateFromInstance
                 $this->rotateAfterUpload();
                 $this->resizeAfterUpload();
             }
-            $this->_model->createPreviews();
+            $this->_model->createPreviews($this->maxWidth);
         }
 
         return $this->_model;

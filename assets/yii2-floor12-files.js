@@ -1,6 +1,3 @@
-console.log('Yii2 files model init.');
-
-
 var currentCroppingImageId;
 var currentRenamingFileId;
 var cropper;
@@ -22,7 +19,6 @@ $(document).on('change', '.yii2-files-upload-field', function () {
     formData.append('name', obj.data('name'));
     formData.append('count', 1);
     formData.append('_fileFormToken', yii2FileFormToken);
-
 
     $.ajax({
         url: yii2UploadRoute,
@@ -65,13 +61,14 @@ var observer = new MutationObserver(function (mutations) {
 var lastUploader = null;
 
 function Yii2FilesUploaderSet(id, className, attribute, scenario, name) {
-
     var mode = 'multi';
     var blockName = "#" + id;
     var block = $(blockName);
     var uploadButton = block.find('button.btn-upload')[0];
     var filesList = block.find('.floor12-files-widget-list')[0];
     var ratio = 0;
+    var maxWidth = block.data("max-width") || null;
+
 
     var csrf = block.parents('form').find('input[name=' + yii2CsrfParam + ']').val();
 
@@ -90,12 +87,13 @@ function Yii2FilesUploaderSet(id, className, attribute, scenario, name) {
         mode: mode,
         name: name,
         ratio: ratio,
+        max_width: maxWidth,
         count: block.find('.floor12-files-widget-list .floor12-file-object').length,
         _fileFormToken: yii2FileFormToken
     }
 
     uploaderSettings[id][yii2CsrfParam] = csrf
-    console.log(uploaderSettings[id]);
+
     var uploader = new ss.SimpleUpload({
         button: uploadButton,
         url: yii2UploadRoute,
@@ -140,7 +138,6 @@ function Yii2FilesUploaderSet(id, className, attribute, scenario, name) {
         },
         onComplete: function (filename, response) {
             if (!response) {
-                console.log(filename + 'upload failed');
                 uploaderSettings[id].count--;
                 return false;
             }
@@ -151,7 +148,6 @@ function Yii2FilesUploaderSet(id, className, attribute, scenario, name) {
                 toggleSingleUploadButton(block);
         },
         onError: function (filename, errorType, status, statusText, response, uploadBtn, fileSize) {
-            console.log(uploaderSettings[id]);
             uploaderSettings[id].count--;
             data = {
                 responseText: response,
@@ -216,7 +212,6 @@ function removeFile(id) {
 }
 
 function removeAllFiles(event) {
-    console.log('removeAllFiles');
     $(event.target).parents('div.floor12-files-widget-list').find('div.files-btn-group').fadeOut(200, function () {
         $(this).remove();
     });
@@ -256,11 +251,9 @@ function initCropper(id, url, ratio, remove) {
     aspectRatio = NaN;
     $('#cropper-btn-cancel').show();
 
-    console.log(cropperHideCancel);
     if (cropperHideCancel == 'true') {
         $('#cropper-btn-cancel').hide();
     }
-
 
     if (ratio) {
         autoCrop = true;

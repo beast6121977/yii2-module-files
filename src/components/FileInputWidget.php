@@ -32,6 +32,8 @@ class FileInputWidget extends InputWidget
     private $layout = self::VIEW_SINGLE;
     private $ratio;
 
+    public int|null $maxWidth = null;
+
     public function init()
     {
         $this->registerTranslations();
@@ -104,7 +106,8 @@ class FileInputWidget extends InputWidget
             'model' => $this->model,
             'ratio' => $this->ratio,
             'name' => $this->name,
-            'value' => $this->value
+            'value' => $this->value,
+            'max_width' => $this->maxWidth,
         ]);
     }
 
