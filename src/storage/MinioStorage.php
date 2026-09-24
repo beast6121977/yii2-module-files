@@ -55,7 +55,11 @@ final class MinioStorage extends AbstractStorage implements StorageInterface
 
     public function putFile(string $key, string $sourcePath, string $contentType): void
     {
-        if (!is_file($sourcePath) || !is_readable($sourcePath)) {
+        if (!is_file($sourcePath)) {
+            throw new StorageException('Source file is not file.');
+        }
+
+        if (!is_readable($sourcePath)) {
             throw new StorageException('Source file is not readable.');
         }
 

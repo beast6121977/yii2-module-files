@@ -6,6 +6,7 @@ namespace modules\files\models;
 
 use yii2mod\enum\helpers\BaseEnum;
 
+/** @deprecated  */
 class FileType extends BaseEnum
 {
     const FILE = 0;

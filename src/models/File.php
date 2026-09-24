@@ -8,6 +8,7 @@ use modules\files\assets\IconHelper;
 use modules\files\components\FileBehaviour;
 use modules\files\logic\ImagePreviewer;
 use Yii;
+use Spatie\Image\Image;
 use modules\files\storage\StorageException;
 use modules\files\storage\StorageInterface;
 use yii\base\InvalidConfigException;
@@ -767,8 +768,24 @@ class File extends ActiveRecord
             }
 
             if ($width < $originalWidth) {
-                $storage->generatePreview($sourcePath, $width, false, $this->filename);
-                $storage->generatePreview($sourcePath, $width, true, $this->filename);
+                $tmpPath = $storage->getTmpPath($this->filename);
+                $storage->generatePreview(
+                    Image::load($sourcePath),
+                    $tmpPath,
+                    $width,
+                    false,
+                    'image/jpeg'
+                );
+                $storage->generatePreview(
+                    Image::load($sourcePath),
+                    $tmpPath,
+                    $width,
+                    true,
+                    'image/webp'
+                );
+                if (is_file($tmpPath)) {
+                    unlink($tmpPath);
+                }
             }
         }
 

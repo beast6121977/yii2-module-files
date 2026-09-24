@@ -2,11 +2,14 @@
 
 namespace modules\files\storage;
 
+use Spatie\Image\Enums\Fit;
 use Yii;
 use modules\files\components\SimpleImage;
 use yii\base\ErrorException;
 use yii\console\Application;
 use yii\helpers\Console;
+use Spatie\Image\Image;
+use Spatie\Image\Enums\AlignPosition;
 
 abstract class AbstractStorage implements StorageInterface
 {
@@ -59,59 +62,73 @@ abstract class AbstractStorage implements StorageInterface
      * @throws ErrorException
      */
     public function generatePreview(
-        string $imagePath,
+        Image $image,
+        string $tmpPath,
         int $width = 0,
         bool $is_webp = false,
-        ?string $storageFilename = null
+        string $mimeType = 'image/jpeg',
+        bool $apply_watermark = false
     ): void
     {
         $this->module = \Yii::$app->getModule('files');
+        $this->storage = $this->module->getStorage();
+        $optimizer = ImageConfig::tryFrom($mimeType)?->config();
+        $previewPath = $tmpPath;
+        $watermarked = $this->module->apply_watermark && $apply_watermark;
 
-        if (file_exists($imagePath)) :
-            $this->storage = $this->module->getStorage();
-            $jpegName = $this->makeNameWithSize($imagePath, $width, false);
-            $webpName = $this->makeNameWithSize($imagePath, $width, true);
+        if ($watermarked) {
+            $pathInfo = pathinfo($tmpPath);
+            $previewPath = ($pathInfo['dirname'] !== '.' ? $pathInfo['dirname'] . DIRECTORY_SEPARATOR : '')
+                . $pathInfo['filename']
+                . '.watermark';
 
-            if (!$is_webp) {
-                $this->createPreview($imagePath, $jpegName, $width, $this->module->watermark);
-                $type = mime_content_type($jpegName);
-
-                $previewKey = $this->storage->previewKey(
-                    $storageFilename ?? basename($imagePath),
-                    $type,
-                    $width,
-                    false
-                );
-                $this->storage->putFile($previewKey, $jpegName, $type);
-            } else {
-                if ($is_webp && !file_exists($webpName)) {
-                    $ext = strtolower(pathinfo($imagePath, PATHINFO_EXTENSION));
-                    $isTransparentSource = in_array($ext, ['webp', 'png'], true)
-                        || in_array($this->model->content_type ?? '', ['image/webp', 'image/png'], true);
-
-                    if ($isTransparentSource) {
-                        $this->createPreviewWebpFromSource($imagePath, $webpName, $width, $this->module->watermark);
-                    } else {
-                        $this->createPreviewWebp($imagePath, $webpName, $width, $this->module->watermark);
-                    }
-                    $previewKey = $this->storage->previewKey(
-                        $storageFilename ?? basename($imagePath),
-                        'image/webp',
-                        $width,
-                        true
-                    );
-                    $this->storage->putFile($previewKey, $webpName, 'image/webp');
-                }
+            if (!empty($pathInfo['extension'])) {
+                $previewPath .= '.' . $pathInfo['extension'];
             }
+        }
 
-            if (!YII_ENV_PROD && (Yii::$app instanceof Application)) {
-                Console::output(Console::ansiFormat(
-                    "Создано превью: {$jpegName}, {$webpName}",
-                    [Console::FG_GREEN]
-                ));
+        if ($width > 0) {
+            $image->width($width);
+        }
+
+        if ($watermarked) {
+            if (!is_file($this->module->watermark)) {
+                throw new ErrorException('Watermark file does not exist: ' . $this->module->watermark);
             }
+            $image->watermark(
+                $this->module->watermark,
+                AlignPosition::Center,
+                width: $image->getWidth(),
+                height: $image->getHeight(),
+                fit: Fit::Contain
+            );
+        }
 
-        endif;
+        if ($optimizer) {
+            $image->optimize($optimizer);
+        }
+        $image->save($previewPath);
+
+        $previewKey = $this->storage->previewKey(
+            basename($tmpPath),
+            $mimeType,
+            $width,
+            $is_webp
+        );
+        try {
+            $this->storage->putFile($previewKey, $previewPath, $mimeType);
+        } finally {
+            if ($watermarked && is_file($previewPath)) {
+                unlink($previewPath);
+            }
+        }
+
+        if (!YII_ENV_PROD && (Yii::$app instanceof Application)) {
+            Console::output(Console::ansiFormat(
+                "Создано превью: {$previewKey}",
+                [Console::FG_GREEN]
+            ));
+        }
     }
 
     /**
@@ -127,7 +144,7 @@ abstract class AbstractStorage implements StorageInterface
         $directory = $pathInfo['dirname'] ?? '';
         $directory = $directory === '.' ? '' : $directory;
         $directory = str_ireplace('/import_files', '', $directory);
-        return ($directory ? $directory . DIRECTORY_SEPARATOR : ''). $this->makeShortNameWithSize($imagePath, $width, $is_webp);
+        return ($directory ? $directory . DIRECTORY_SEPARATOR : '') . $this->makeShortNameWithSize($imagePath, $width, $is_webp);
     }
 
 
@@ -429,5 +446,29 @@ abstract class AbstractStorage implements StorageInterface
     {
         $normalized = $this->normalizeKey($filename);
         return pathinfo($normalized, PATHINFO_FILENAME);
+    }
+
+    /**
+     * @param string $originalFilePath
+     * @param string $mimeType
+     * @return Image|bool
+     */
+    public function optimize(string $originalFilePath, string $mimeType, string $optimizationPath): Image|bool
+    {
+        if ($optimizer = ImageConfig::tryFrom($mimeType)->config()) {
+            $image = Image::load($originalFilePath)->optimize($optimizer)->save($optimizationPath);
+            unset($optimizer);
+
+            return $image;
+        }
+
+        return false;
+    }
+
+    public function getTmpPath($originalFilePath)
+    {
+        $tmpDir = sys_get_temp_dir();
+        $filename = basename($originalFilePath);
+        return $tmpDir . DIRECTORY_SEPARATOR . $filename;
     }
 }

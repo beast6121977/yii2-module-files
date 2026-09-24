@@ -101,6 +101,44 @@ class ImageWatermarkPolicyTest extends TestCase
         $this->assertStringContainsString('_wm' . $file->getWatermarkSignature(), $processedPath);
     }
 
+    public function testCreatesWatermarkedEightHundredEightyPixelPreview(): void
+    {
+        $sourcePath = Yii::getAlias('@app/data/photo.png');
+        $module = Yii::$app->getModule('files');
+        $module->apply_watermark = true;
+        $module->watermark = Yii::getAlias('@app/data/graphic_alpha.png');
+        $relativePath = '/photos/880-watermark.png';
+        $storagePath = Yii::$app->getModule('files')->storageFullPath . $relativePath;
+
+        if (!is_dir(dirname($storagePath))) {
+            mkdir(dirname($storagePath), 0777, true);
+        }
+        copy($sourcePath, $storagePath);
+
+        $file = new File([
+            'class' => WatermarkEnabledModel::class,
+            'field' => 'image',
+            'title' => 'photo.png',
+            'filename' => $relativePath,
+            'content_type' => 'image/png',
+            'type' => FileType::IMAGE,
+            'created' => time(),
+            'size' => filesize($storagePath),
+        ]);
+
+        $file->createPreviews();
+
+        $previewKey = $file->getStorage()->previewKey($relativePath, 'image/jpeg', 880, false);
+        $previewPath = Yii::$app->getModule('files')->storageFullPath . DIRECTORY_SEPARATOR . $previewKey;
+
+        $this->assertFileExists($previewPath);
+        $this->assertNotSame(
+            md5_file($sourcePath),
+            md5_file($previewPath),
+            'The 880px preview must be processed and watermarked.'
+        );
+    }
+
     private function ensureStorageFolders(): void
     {
         foreach ([
