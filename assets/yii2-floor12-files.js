@@ -60,6 +60,28 @@ var observer = new MutationObserver(function (mutations) {
 
 var lastUploader = null;
 
+function setFilesUploadPending(block, delta) {
+    var form = block.closest('form');
+
+    if (!form.length)
+        return;
+
+    var pending = Math.max(0, Number(form.data('files-upload-pending') || 0) + delta);
+    form.data('files-upload-pending', pending);
+
+    if (delta > 0 && pending === delta) {
+        form.find(':submit:not(:disabled)')
+            .prop('disabled', true)
+            .attr('data-files-upload-disabled', '1');
+    }
+
+    if (pending === 0) {
+        form.find(':submit[data-files-upload-disabled="1"]')
+            .prop('disabled', false)
+            .removeAttr('data-files-upload-disabled');
+    }
+}
+
 function Yii2FilesUploaderSet(id, className, attribute, scenario, name) {
     var mode = 'multi';
     var blockName = "#" + id;
@@ -68,6 +90,9 @@ function Yii2FilesUploaderSet(id, className, attribute, scenario, name) {
     var filesList = block.find('.floor12-files-widget-list')[0];
     var ratio = 0;
     var maxWidth = block.data("max-width") || null;
+    if (typeof maxWidth === 'string' && maxWidth.charAt(0) === '[') {
+        maxWidth = JSON.parse(maxWidth);
+    }
 
 
     var csrf = block.parents('form').find('input[name=' + yii2CsrfParam + ']').val();
@@ -89,6 +114,7 @@ function Yii2FilesUploaderSet(id, className, attribute, scenario, name) {
         ratio: ratio,
         max_width: maxWidth,
         count: block.find('.floor12-files-widget-list .floor12-file-object').length,
+        pendingUploads: 0,
         _fileFormToken: yii2FileFormToken
     }
 
@@ -104,6 +130,8 @@ function Yii2FilesUploaderSet(id, className, attribute, scenario, name) {
         multipleSelect: true,
         data: uploaderSettings[id],
         onSubmit: function (filename, extension, uploadBtn, size) {
+            uploaderSettings[id].pendingUploads++;
+            setFilesUploadPending(block, 1);
             uploaderSettings[id].count++;
             var svg = '\t<svg class="progress-circle" width="60" height="60" viewBox="0 0 60 60">\n' +
                 '\t\t<circle cx="30" cy="30" r="27" fill="none" stroke="#ccc" stroke-width="5" />\n' +
@@ -137,6 +165,8 @@ function Yii2FilesUploaderSet(id, className, attribute, scenario, name) {
             $(filesList).append(btnGroup);
         },
         onComplete: function (filename, response) {
+            uploaderSettings[id].pendingUploads = Math.max(0, uploaderSettings[id].pendingUploads - 1);
+            setFilesUploadPending(block, -1);
             if (!response) {
                 uploaderSettings[id].count--;
                 return false;
@@ -148,6 +178,8 @@ function Yii2FilesUploaderSet(id, className, attribute, scenario, name) {
                 toggleSingleUploadButton(block);
         },
         onError: function (filename, errorType, status, statusText, response, uploadBtn, fileSize) {
+            uploaderSettings[id].pendingUploads = Math.max(0, uploaderSettings[id].pendingUploads - 1);
+            setFilesUploadPending(block, -1);
             uploaderSettings[id].count--;
             data = {
                 responseText: response,
@@ -402,4 +434,3 @@ $(document).ready(function () {
     initCropperLayout();
 
 });
-

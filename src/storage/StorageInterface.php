@@ -34,4 +34,6 @@ interface StorageInterface
     public function previewKey(string $filename, string $type, int $width, bool $webp): string;
 
     public function publicUrl(string $key): ?string;
+
+    public function mime(string $key): ?string;
 }

@@ -32,7 +32,7 @@ class FileInputWidget extends InputWidget
     private $layout = self::VIEW_SINGLE;
     private $ratio;
 
-    public int|null $maxWidth = null;
+    public int|array|null $maxWidth = null;
 
     public function init()
     {

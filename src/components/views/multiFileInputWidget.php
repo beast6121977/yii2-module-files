@@ -39,6 +39,7 @@ if (YII_ENV == 'test')
 
 <div class="floor12-files-widget-block files-widget-block" id="files-widget-block_<?= $block_id ?>"
      data-ratio="<?= $ratio ?>"
+     data-max-width="<?= Html::encode(is_array($max_width) ? json_encode($max_width) : ($max_width ?? '')) ?>"
      data-classname="<?= $className ?>"
      data-attribute="<?= $attribute ?>">
     <button class="<?= $uploadButtonClass ?>" type="button">

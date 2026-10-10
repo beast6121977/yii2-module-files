@@ -112,5 +112,60 @@ class FileCreateFromInstanceTest extends TestCase
 
     }
 
+    public function testDoesNotCreatePreviewsWhenMaxWidthIsNull(): void
+    {
+        $model = $this->createImage(['modelClass' => TestModel::class, 'attribute' => 'images']);
+
+        self::assertFalse($model->getStorage()->has($model->getPreviewStorageKey(32, true)));
+    }
+
+    public function testDoesNotCreatePreviewsWhenMaxWidthIsStringNull(): void
+    {
+        $model = $this->createImage([
+            'modelClass' => TestModel::class,
+            'attribute' => 'images',
+            'max_width' => 'null',
+        ]);
+
+        self::assertFalse($model->getStorage()->has($model->getPreviewStorageKey(32, true)));
+    }
+
+    public function testCreatesPreviewsForEachConfiguredWidth(): void
+    {
+        $model = $this->createImage([
+            'modelClass' => TestModel::class,
+            'attribute' => 'images',
+            'max_width' => [32, 64],
+        ]);
+
+        self::assertTrue($model->getStorage()->has($model->getPreviewStorageKey(32, true)));
+        self::assertTrue($model->getStorage()->has($model->getPreviewStorageKey(64, true)));
+        self::assertFalse($model->getStorage()->has($model->getPreviewStorageKey(80, true)));
+    }
+
+    public function testCreatesOnePreviewForIntegerMaxWidth(): void
+    {
+        $model = $this->createImage([
+            'modelClass' => TestModel::class,
+            'attribute' => 'images',
+            'max_width' => 64,
+        ]);
+
+        self::assertTrue($model->getStorage()->has($model->getPreviewStorageKey(64, true)));
+        self::assertFalse($model->getStorage()->has($model->getPreviewStorageKey(32, true)));
+    }
+
+    private function createImage(array $data)
+    {
+        $instance = new UploadedFile();
+        $instance->error = 0;
+        $instance->name = 'testName.jpg';
+        $instance->tempName = "tests/data/testImage.jpg";
+        $instance->size = filesize($instance->tempName);
+        $instance->type = "image/jpeg";
+
+        return (new FileCreateFromInstance($instance, $data, null, false))->execute();
+    }
+
 
 }

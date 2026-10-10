@@ -37,23 +37,22 @@ class VideoFrameExtractor
      */
     public function extract()
     {
-        $command = "{$this->ffmpegBin} -i {$this->videoSourceFilename}  -ss 00:00:05.000 -vframes 1  {$this->outputImageFilename}";
-        exec($command, $out, $result);
-        if (is_file($this->outputImageFilename)) {
-            return true;
-        }
+        foreach (['00:00:05.000', '00:00:03.000', '00:00:01.000'] as $timestamp) {
+            $command = implode(' ', [
+                escapeshellarg($this->ffmpegBin),
+                '-y',
+                '-ss', escapeshellarg($timestamp),
+                '-i', escapeshellarg($this->videoSourceFilename),
+                '-frames:v', '1',
+                '-f', 'image2',
+                escapeshellarg($this->outputImageFilename),
+            ]);
 
-        $command = "{$this->ffmpegBin} -i {$this->videoSourceFilename}  -ss 00:00:03.000 -vframes 1  {$this->outputImageFilename}";
-        exec($command, $out, $result);
-        if (is_file($this->outputImageFilename)) {
-            return true;
-        }
-
-
-           $command = "{$this->ffmpegBin} -i {$this->videoSourceFilename}  -ss 00:00:01.000 -vframes 1  {$this->outputImageFilename}";
-        exec($command, $out, $result);
-        if (is_file($this->outputImageFilename)) {
-            return true;
+            $out = [];
+            exec($command . ' 2>&1', $out, $result);
+            if (is_file($this->outputImageFilename) && @getimagesize($this->outputImageFilename) !== false) {
+                return true;
+            }
         }
 
         throw new ErrorException('FFmpeg frame extracting fail:' . print_r($out, true));

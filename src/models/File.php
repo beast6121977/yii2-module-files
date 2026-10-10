@@ -7,12 +7,14 @@ use ErrorException;
 use modules\files\assets\IconHelper;
 use modules\files\components\FileBehaviour;
 use modules\files\logic\ImagePreviewer;
+use Spatie\Image\Exceptions\CouldNotLoadImage;
 use Yii;
 use Spatie\Image\Image;
 use modules\files\storage\StorageException;
 use modules\files\storage\StorageInterface;
 use yii\base\InvalidConfigException;
 use yii\db\ActiveRecord;
+use yii\helpers\FileHelper;
 use yii\helpers\Url;
 
 
@@ -88,29 +90,37 @@ class File extends ActiveRecord
     {
         $icon = IconHelper::FILE;
 
-        if ($this->content_type == 'application/vnd.openxmlformats-officedocument.wordprocessingml.document')
+        if ($this->content_type == 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
             $icon = IconHelper::FILE_WORD;
+        }
 
-        if ($this->content_type == 'application/vnd.openxmlformats-officedocument.spreadsheetml.document')
+        if ($this->content_type == 'application/vnd.openxmlformats-officedocument.spreadsheetml.document') {
             $icon = IconHelper::FILE_EXCEL;
+        }
 
-        if ($this->content_type == 'application/vnd.openxmlformats-officedocument.presentationml.document')
+        if ($this->content_type == 'application/vnd.openxmlformats-officedocument.presentationml.document') {
             $icon = IconHelper::FILE_POWERPOINT;
+        }
 
-        if ($this->content_type == 'application/x-zip-compressed')
+        if ($this->content_type == 'application/x-zip-compressed') {
             $icon = IconHelper::FILE_ARCHIVE;
+        }
 
-        if ($this->content_type == 'application/octet-stream')
+        if ($this->content_type == 'application/octet-stream') {
             $icon = IconHelper::FILE_ARCHIVE;
+        }
 
-        if (preg_match('/audio/', $this->content_type))
+        if (preg_match('/audio/', $this->content_type)) {
             $icon = IconHelper::FILE_AUDIO;
+        }
 
-        if (preg_match('/pdf/', $this->content_type))
+        if (preg_match('/pdf/', $this->content_type)) {
             $icon = IconHelper::FILE_PDF;
+        }
 
-        if ($this->type == FileType::VIDEO)
+        if ($this->type == FileType::VIDEO) {
             $icon = IconHelper::FILE_VIDEO;
+        }
 
         return $icon;
     }
@@ -122,63 +132,63 @@ class File extends ActiveRecord
         $idx = strtolower($idx[$count_explode - 1]);
 
         $mimet = array(
-            'txt' => 'text/plain',
-            'htm' => 'text/html',
-            'html' => 'text/html',
-            'php' => 'text/html',
-            'css' => 'text/css',
-            'js' => 'application/javascript',
-            'json' => 'application/json',
-            'xml' => 'application/xml',
-            'swf' => 'application/x-shockwave-flash',
-            'flv' => 'video/x-flv',
+                'txt' => 'text/plain',
+                'htm' => 'text/html',
+                'html' => 'text/html',
+                'php' => 'text/html',
+                'css' => 'text/css',
+                'js' => 'application/javascript',
+                'json' => 'application/json',
+                'xml' => 'application/xml',
+                'swf' => 'application/x-shockwave-flash',
+                'flv' => 'video/x-flv',
 
             // images
-            'png' => 'image/png',
-            'jpe' => 'image/jpeg',
-            'jpeg' => 'image/jpeg',
-            'jpg' => 'image/jpeg',
-            'gif' => 'image/gif',
-            'webp' => 'image/webp',
-            'bmp' => 'image/bmp',
-            'ico' => 'image/vnd.microsoft.icon',
-            'tiff' => 'image/tiff',
-            'tif' => 'image/tiff',
-            'svg' => 'image/svg+xml',
-            'svgz' => 'image/svg+xml',
+                'png' => 'image/png',
+                'jpe' => 'image/jpeg',
+                'jpeg' => 'image/jpeg',
+                'jpg' => 'image/jpeg',
+                'gif' => 'image/gif',
+                'webp' => 'image/webp',
+                'bmp' => 'image/bmp',
+                'ico' => 'image/vnd.microsoft.icon',
+                'tiff' => 'image/tiff',
+                'tif' => 'image/tiff',
+                'svg' => 'image/svg+xml',
+                'svgz' => 'image/svg+xml',
 
             // archives
-            'zip' => 'application/zip',
-            'rar' => 'application/x-rar-compressed',
-            'exe' => 'application/x-msdownload',
-            'msi' => 'application/x-msdownload',
-            'cab' => 'application/vnd.ms-cab-compressed',
+                'zip' => 'application/zip',
+                'rar' => 'application/x-rar-compressed',
+                'exe' => 'application/x-msdownload',
+                'msi' => 'application/x-msdownload',
+                'cab' => 'application/vnd.ms-cab-compressed',
 
             // audio/video
-            'mp3' => 'audio/mpeg',
-            'qt' => 'video/quicktime',
-            'mov' => 'video/quicktime',
+                'mp3' => 'audio/mpeg',
+                'qt' => 'video/quicktime',
+                'mov' => 'video/quicktime',
 
             // adobe
-            'pdf' => 'application/pdf',
-            'psd' => 'image/vnd.adobe.photoshop',
-            'ai' => 'application/postscript',
-            'eps' => 'application/postscript',
-            'ps' => 'application/postscript',
+                'pdf' => 'application/pdf',
+                'psd' => 'image/vnd.adobe.photoshop',
+                'ai' => 'application/postscript',
+                'eps' => 'application/postscript',
+                'ps' => 'application/postscript',
 
             // ms office
-            'doc' => 'application/msword',
-            'rtf' => 'application/rtf',
-            'xls' => 'application/vnd.ms-excel',
-            'ppt' => 'application/vnd.ms-powerpoint',
-            'docx' => 'application/msword',
-            'xlsx' => 'application/vnd.ms-excel',
-            'pptx' => 'application/vnd.ms-powerpoint',
+                'doc' => 'application/msword',
+                'rtf' => 'application/rtf',
+                'xls' => 'application/vnd.ms-excel',
+                'ppt' => 'application/vnd.ms-powerpoint',
+                'docx' => 'application/msword',
+                'xlsx' => 'application/vnd.ms-excel',
+                'pptx' => 'application/vnd.ms-powerpoint',
 
 
             // open office
-            'odt' => 'application/vnd.oasis.opendocument.text',
-            'ods' => 'application/vnd.oasis.opendocument.spreadsheet',
+                'odt' => 'application/vnd.oasis.opendocument.text',
+                'ods' => 'application/vnd.oasis.opendocument.spreadsheet',
         );
 
         if (isset($mimet[$idx])) {
@@ -192,9 +202,9 @@ class File extends ActiveRecord
     public function rules()
     {
         return [
-            [['class', 'field', 'filename', 'content_type', 'type'], 'required'],
-            [['object_id', 'type', 'video_status', 'ordering'], 'integer'],
-            [['class', 'field', 'title', 'filename', 'content_type', 'alt'], 'string', 'max' => 255],
+                [['class', 'field', 'filename', 'content_type', 'type'], 'required'],
+                [['object_id', 'type', 'video_status', 'ordering'], 'integer'],
+                [['class', 'field', 'title', 'filename', 'content_type', 'alt'], 'string', 'max' => 255],
         ];
     }
 
@@ -202,17 +212,17 @@ class File extends ActiveRecord
     public function attributeLabels()
     {
         return [
-            'id' => Yii::t('app', 'ID'),
-            'class' => Yii::t('app', 'Class'),
-            'field' => Yii::t('app', 'Field'),
-            'object_id' => Yii::t('app', 'Object ID'),
-            'title' => Yii::t('app', 'Title'),
-            'filename' => Yii::t('app', 'Filename'),
-            'content_type' => Yii::t('app', 'Content Type'),
-            'type' => Yii::t('app', 'Type'),
-            'video_status' => Yii::t('app', 'Video status'),
-            'ordering' => Yii::t('app', 'Ordering'),
-            'alt' => Yii::t('app', 'Alternative title'),
+                'id' => Yii::t('app', 'ID'),
+                'class' => Yii::t('app', 'Class'),
+                'field' => Yii::t('app', 'Field'),
+                'object_id' => Yii::t('app', 'Object ID'),
+                'title' => Yii::t('app', 'Title'),
+                'filename' => Yii::t('app', 'Filename'),
+                'content_type' => Yii::t('app', 'Content Type'),
+                'type' => Yii::t('app', 'Type'),
+                'video_status' => Yii::t('app', 'Video status'),
+                'ordering' => Yii::t('app', 'Ordering'),
+                'alt' => Yii::t('app', 'Alternative title'),
         ];
     }
 
@@ -223,8 +233,9 @@ class File extends ActiveRecord
 
     public function getRootPreviewPath()
     {
-        if ($this->isSvg())
+        if ($this->isSvg()) {
             return $this->getRootPath();
+        }
 
         if ($this->usesMinioStorage()) {
             return $this->getStoragePreviewPath(0, false);
@@ -252,7 +263,18 @@ class File extends ActiveRecord
             return $this->getMaterializedStoragePath($this->getOriginalStorageKey());
         }
 
-        return Yii::$app->getModule('files')->storageFullPath . DIRECTORY_SEPARATOR . $this->getOriginalStorageKey();
+        $module = Yii::$app->getModule('files');
+        $legacyPath = rtrim($module->storageFullPath, DIRECTORY_SEPARATOR)
+                . DIRECTORY_SEPARATOR . ltrim(
+                        str_replace('\\', DIRECTORY_SEPARATOR, $this->filename),
+                        DIRECTORY_SEPARATOR
+                );
+
+        if (is_file($legacyPath)) {
+            return $legacyPath;
+        }
+
+        return $module->storageFullPath . DIRECTORY_SEPARATOR . $this->getOriginalStorageKey();
     }
 
     public function getStorage(): StorageInterface
@@ -296,7 +318,6 @@ class File extends ActiveRecord
     public function getHrefPreview(int $width, bool $webp = false)
     {
         if ($this->usesMinioStorage()) {
-
             $key = $this->getPreviewStorageKey($width, $webp);
 
             if ($this->getStorage()->has($key)) {
@@ -311,11 +332,12 @@ class File extends ActiveRecord
             return '/img/no-photo.svg';
         }
 
-        return Url::to(['/files/default/get',
-            'hash' => $this->hash,
-            'v' => $this->getDeliveryVersion(),
-            'width' => $width,
-            'webp' => $webp,
+        return Url::to([
+                '/files/default/get',
+                'hash' => $this->hash,
+                'v' => $this->getDeliveryVersion(),
+                'width' => $width,
+                'webp' => $webp,
         ]);
     }
 
@@ -350,8 +372,18 @@ class File extends ActiveRecord
             return;
         }
 
+        $module = Yii::$app->getModule('files');
         $extension = pathinfo($this->rootPath, PATHINFO_EXTENSION);
         array_map('unlink', glob(str_replace(".{$extension}", '*', $this->rootPath)));
+
+        $this->getStorage()->deleteVariants($this->filename);
+
+        $legacyPreviewDirectory = rtrim($module->storageFullPath, DIRECTORY_SEPARATOR)
+                . DIRECTORY_SEPARATOR . 'previews' . DIRECTORY_SEPARATOR
+                . pathinfo($this->filename, PATHINFO_FILENAME);
+        if (is_dir($legacyPreviewDirectory)) {
+            FileHelper::removeDirectory($legacyPreviewDirectory);
+        }
     }
 
     /**
@@ -404,19 +436,19 @@ class File extends ActiveRecord
         }
 
         return substr(md5(implode(':', [
-            self::WATERMARK_SIGNATURE_VERSION,
-            $path,
-            (string)(@filemtime($path) ?: 0),
+                self::WATERMARK_SIGNATURE_VERSION,
+                $path,
+                (string)(@filemtime($path) ?: 0),
         ])), 0, 12);
     }
 
     public function getDeliveryVersion(): string
     {
         return md5(implode(':', [
-            $this->hash,
-            $this->created,
-            $this->size,
-            $this->getWatermarkSignature(),
+                $this->hash,
+                $this->created,
+                $this->size,
+                $this->getWatermarkSignature(),
         ]));
     }
 
@@ -444,30 +476,34 @@ class File extends ActiveRecord
             }
         }
 
-        if (!file_exists($this->getRootPath()))
+        if (!file_exists($this->getRootPath())) {
             return null;
+        }
 
-        if (!$this->isVideo() && !$this->isImage())
+        if (!$this->isVideo() && !$this->isImage()) {
             throw new ErrorException('Requiested file is not an image and its implsible to resize it.');
+        }
 
-        if (!$this->hash)
+        if (!$this->hash) {
             throw new ErrorException('File hash is empty and preview URL cannot be generated.');
+        }
 
         $width = max(0, (int)$width);
         $webp = (bool)$webp;
 
-        if (Yii::$app->getModule('files')->hostStatic)
+        if (Yii::$app->getModule('files')->hostStatic) {
             return
-                Yii::$app->getModule('files')->hostStatic .
-                $this->makeNameWithSize($this->filename, $width, $webp) .
-                "?hash={$this->hash}&width={$width}&webp=" . intval($webp) . "&v={$this->getDeliveryVersion()}";
+                    Yii::$app->getModule('files')->hostStatic .
+                    $this->makeNameWithSize($this->filename, $width, $webp) .
+                    "?hash={$this->hash}&width={$width}&webp=" . intval($webp) . "&v={$this->getDeliveryVersion()}";
+        }
 
         return Url::toRoute([
-            '/files/default/image',
-            'hash' => $this->hash,
-            'width' => $width,
-            'webp' => (int)$webp,
-            'v' => $this->getDeliveryVersion(),
+                '/files/default/image',
+                'hash' => $this->hash,
+                'width' => $width,
+                'webp' => (int)$webp,
+                'v' => $this->getDeliveryVersion(),
         ]);
     }
 
@@ -490,7 +526,8 @@ class File extends ActiveRecord
      */
     public function isVideo(): bool
     {
-        return $this->type == FileType::VIDEO;
+        return $this->type == FileType::VIDEO
+                || str_starts_with((string)$this->content_type, 'video/');
     }
 
     /**
@@ -511,12 +548,12 @@ class File extends ActiveRecord
         $targetExtension = $this->getPreviewExtension($webp);
 
         return ($directory ? $directory . DIRECTORY_SEPARATOR : '')
-            . $basename
-            . $watermarkSuffix
-            . '_w'
-            . $width
-            . '.'
-            . $targetExtension;
+                . $basename
+                . $watermarkSuffix
+                . '_w'
+                . $width
+                . '.'
+                . $targetExtension;
     }
 
     /**
@@ -528,8 +565,9 @@ class File extends ActiveRecord
      */
     public function getPreviewRootPath(int $width = 0, bool $webp = false): string
     {
-        if (!$this->isVideo() && !$this->isImage())
+        if (!$this->isVideo() && !$this->isImage()) {
             throw new ErrorException('Requiested file is not an image and its implsible to resize it.');
+        }
         return $this->makeNameWithSize($this->rootPath, $width, $webp);
     }
 
@@ -680,24 +718,24 @@ class File extends ActiveRecord
         $controllerNamespace = strtolower((string)(Yii::$app->controllerNamespace ?? ''));
 
         if (
-            str_contains($appId, 'back')
-            || str_contains($appId, 'admin')
-            || str_contains($controllerNamespace, '\\backend\\')
+                str_contains($appId, 'back')
+                || str_contains($appId, 'admin')
+                || str_contains($controllerNamespace, '\\backend\\')
         ) {
             $preferBackend = true;
         }
 
         $primaryTargets = $preferBackend
-            ? ['\\backend\\models\\', '\\frontend\\models\\', '\\api\\models\\']
-            : ['\\frontend\\models\\', '\\backend\\models\\', '\\api\\models\\'];
+                ? ['\\backend\\models\\', '\\frontend\\models\\', '\\api\\models\\']
+                : ['\\frontend\\models\\', '\\backend\\models\\', '\\api\\models\\'];
 
         $secondaryTargets = $preferBackend
-            ? ['\\backend\\', '\\frontend\\', '\\api\\']
-            : ['\\backend\\', '\\frontend\\', '\\api\\'];
+                ? ['\\backend\\', '\\frontend\\', '\\api\\']
+                : ['\\backend\\', '\\frontend\\', '\\api\\'];
 
         return [
-            '\\common\\models\\' => $primaryTargets,
-            '\\common\\' => $secondaryTargets,
+                '\\common\\models\\' => $primaryTargets,
+                '\\common\\' => $secondaryTargets,
         ];
     }
 
@@ -722,7 +760,7 @@ class File extends ActiveRecord
      * @param int|null $maxWidth = null
      * @return void
      * @throws ErrorException
-     * @throws InvalidConfigException
+     * @throws InvalidConfigException|CouldNotLoadImage
      */
     public function createPreviews(?int $maxWidth = null): void
     {
@@ -739,12 +777,21 @@ class File extends ActiveRecord
         $framePath = null;
         if ($this->isVideo()) {
             $framePath = $sourcePath . '.jpeg';
-            if (!is_file($framePath)) {
+            if (!$this->isValidPreviewImage($framePath)) {
+                if (is_file($framePath)) {
+                    unlink($framePath);
+                }
+
                 \Yii::createObject(\modules\files\logic\VideoFrameExtractor::class, [
-                    $sourcePath,
-                    $framePath
+                        $sourcePath,
+                        $framePath
                 ])->extract();
             }
+
+            if (!$this->isValidPreviewImage($framePath)) {
+                throw new ErrorException('FFmpeg did not create a valid video preview frame.');
+            }
+
             $sourcePath = $framePath;
         }
 
@@ -770,18 +817,22 @@ class File extends ActiveRecord
             if ($width < $originalWidth) {
                 $tmpPath = $storage->getTmpPath($this->filename);
                 $storage->generatePreview(
-                    Image::load($sourcePath),
-                    $tmpPath,
-                    $width,
-                    false,
-                    'image/jpeg'
+                        Image::load($sourcePath),
+                        $tmpPath,
+                        $width,
+                        false,
+                        'image/jpeg',
+                        false,
+                        $this->filename
                 );
                 $storage->generatePreview(
-                    Image::load($sourcePath),
-                    $tmpPath,
-                    $width,
-                    true,
-                    'image/webp'
+                        Image::load($sourcePath),
+                        $tmpPath,
+                        $width,
+                        true,
+                        'image/webp',
+                        false,
+                        $this->filename
                 );
                 if (is_file($tmpPath)) {
                     unlink($tmpPath);
@@ -792,6 +843,62 @@ class File extends ActiveRecord
         if ($framePath && is_file($framePath)) {
             unlink($framePath);
         }
+    }
+
+    /**
+     * Генерирует одно превью для загруженного файла в формате webp
+     * @param array<int> $widths
+     * @return void
+     * @throws ErrorException
+     * @throws InvalidConfigException|CouldNotLoadImage
+     */
+    public function createPreviewsByWidths(array $widths): void
+    {
+        if (!$this->isImage() && !$this->isVideo()) {
+            return;
+        }
+
+        $module = \Yii::$app->getModule('files');
+        $storage = $this->getStorage();
+        $originalWidth = 2500;
+
+        $sourcePath = $this->getRootPath();
+
+        if ($this->isVideo()) {
+            throw new \LogicException('Only images');
+        }
+
+        if ($module->storageDriver === 'local') {
+            if (!file_exists($sourcePath)) {
+                return;
+            }
+
+            $originalSize = getimagesize($sourcePath);
+            $originalWidth = $originalSize[0];
+        }
+        $tmpPath = $storage->getTmpPath($this->filename);
+
+        foreach ($widths as $width) {
+            $widthForGenerate = min($width, $originalWidth);
+            $storage->generatePreview(
+                    Image::load($sourcePath),
+                    $tmpPath,
+                    $widthForGenerate,
+                    true,
+                    'image/webp',
+                    false,
+                    $this->filename
+            );
+        }
+
+        if (is_file($tmpPath)) {
+            unlink($tmpPath);
+        }
+    }
+
+    private function isValidPreviewImage(string $path): bool
+    {
+        return is_file($path) && @getimagesize($path) !== false;
     }
 
     public function getPublicSrc($width, $webp)

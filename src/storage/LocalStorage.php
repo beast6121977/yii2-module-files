@@ -124,7 +124,7 @@ class LocalStorage extends AbstractStorage implements StorageInterface
 
     public function deleteVariants(string $filename): void
     {
-        $path = $this->pathFor('previews/' . $this->normalizeKey($filename));
+        $path = $this->pathFor('previews/' . $this->filenameWithoutExtension($filename));
         if (!is_dir($path)) {
             return;
         }
@@ -165,5 +165,10 @@ class LocalStorage extends AbstractStorage implements StorageInterface
     private function pathFor(string $key): string
     {
         return $this->rootPath . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $this->normalizeKey($key));
+    }
+
+    public function mime(string $key): string
+    {
+        return mime_content_type($this->getToLocalPath($key));
     }
 }

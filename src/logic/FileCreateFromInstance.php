@@ -23,12 +23,19 @@ class FileCreateFromInstance
     private $_attribute;
     private $_instance;
     private $_onlyUploaded;
-    private $maxWidth;
+    private int|array|null $maxWidth = null;
 
     public function __construct(UploadedFile $file, array $data, IdentityInterface $identity = null, $onlyUploaded = true)
     {
         $this->_onlyUploaded = $onlyUploaded;
-        $this->maxWidth = intval($data['max_width']) ?? null;
+        $maxWidth = $data['max_width'] ?? null;
+        $this->maxWidth = is_array($maxWidth)
+            ? array_map('intval', $maxWidth)
+            : ($maxWidth === null
+                || $maxWidth === ''
+                || (is_string($maxWidth) && strtolower(trim($maxWidth)) === 'null')
+                ? null
+                : (int)$maxWidth);
 
         if (!isset($data['attribute']) || !$data['attribute'] || !isset($data['modelClass']) || !$data['modelClass'])
             throw new BadRequestHttpException("Attribute or class name not set.");
@@ -120,7 +127,10 @@ class FileCreateFromInstance
                 $this->rotateAfterUpload();
                 $this->resizeAfterUpload();
             }
-            $this->_model->createPreviews($this->maxWidth);
+            if ($this->maxWidth !== null) {
+                $widths = is_array($this->maxWidth) ? $this->maxWidth : [$this->maxWidth];
+                $this->_model->createPreviewsByWidths($widths);
+            }
         }
 
         return $this->_model;

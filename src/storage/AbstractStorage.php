@@ -67,7 +67,8 @@ abstract class AbstractStorage implements StorageInterface
         int $width = 0,
         bool $is_webp = false,
         string $mimeType = 'image/jpeg',
-        bool $apply_watermark = false
+        bool $apply_watermark = false,
+        ?string $logicalFilename = null
     ): void
     {
         $this->module = \Yii::$app->getModule('files');
@@ -87,9 +88,11 @@ abstract class AbstractStorage implements StorageInterface
             }
         }
 
-        if ($width > 0) {
-            $image->width($width);
+        foreach (ProgressiveResizePlan::forWidth($image->getWidth(), $width) as $resizeWidth) {
+            $image->width($resizeWidth);
         }
+
+        $image->format($is_webp ? 'webp' : 'jpg');
 
         if ($watermarked) {
             if (!is_file($this->module->watermark)) {
@@ -110,7 +113,7 @@ abstract class AbstractStorage implements StorageInterface
         $image->save($previewPath);
 
         $previewKey = $this->storage->previewKey(
-            basename($tmpPath),
+            $logicalFilename ?? basename($tmpPath),
             $mimeType,
             $width,
             $is_webp
@@ -194,6 +197,9 @@ abstract class AbstractStorage implements StorageInterface
     /**
      * Creat JPG preview
      * @param $sourceImagePath
+     * @param $resultName
+     * @param $width
+     * @param null $watermarkInPng
      * @throws ErrorException
      */
     protected function createPreview($sourceImagePath, $resultName, $width, $watermarkInPng = null)
@@ -221,7 +227,7 @@ abstract class AbstractStorage implements StorageInterface
      *  Create webp from default preview (jpeg)
      * @throws ErrorException
      */
-    protected function createPreviewWebp($source, $target, $width, $watermarkInPng = null)
+    protected function createPreviewWebp($source, $target, $width, $watermarkInPng = null): void
     {
         $this->prepareFolder($target);
 
@@ -245,7 +251,7 @@ abstract class AbstractStorage implements StorageInterface
      * Prefer Imagick, then cwebp (preserves alpha); GD last (often loses alpha on WebP load).
      * @throws ErrorException
      */
-    protected function createPreviewWebpFromSource(string $sourceImagePath, string $targetImagePath, int $width, $watermarkInPng = null)
+    protected function createPreviewWebpFromSource(string $sourceImagePath, string $targetImagePath, int $width, $watermarkInPng = null): void
     {
 
         $this->prepareFolder($targetImagePath);
@@ -438,14 +444,17 @@ abstract class AbstractStorage implements StorageInterface
 
     protected function filenameWithExtension(string $filename): string
     {
-        $normalized = $this->normalizeKey($filename);
-        return pathinfo($normalized, PATHINFO_BASENAME);
+        return $this->normalizeKey($filename);
     }
 
     protected function filenameWithoutExtension(string $filename): string
     {
         $normalized = $this->normalizeKey($filename);
-        return pathinfo($normalized, PATHINFO_FILENAME);
+        $extension = pathinfo($normalized, PATHINFO_EXTENSION);
+
+        return $extension === ''
+            ? $normalized
+            : substr($normalized, 0, -strlen($extension) - 1);
     }
 
     /**
