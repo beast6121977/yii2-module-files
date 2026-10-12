@@ -1,10 +1,5 @@
 <?php
 /**
- * Created by PhpStorm.
- * User: floor12
- * Date: 31.12.2017
- * Time: 16:10
- *
  * @var $this View
  * @var $uploadButtonText string
  * @var $uploadButtonClass string
@@ -18,7 +13,7 @@
  */
 
 use modules\files\assets\IconHelper;
-use yii\bootstrap\BootstrapPluginAsset;
+use yii\bootstrap5\BootstrapPluginAsset;
 use yii\db\ActiveRecord;
 use yii\helpers\Html;
 use yii\web\View;
