@@ -154,10 +154,12 @@ class ConsoleController extends Controller
 
                 $file = File::findOne([
                     'class' => 'common\\models\\Progress',
-                    'field' => 'files',
+                    'field' => 'images',
                     'object_id' => (int)$attachment['itemId'],
                     'filename' => $filename,
                 ]);
+
+                /* Если запись в БД существует - удаляем с диска */
                 if ($file) {
                     if (!$dryRun) {
                         $this->removeLegacyProgressAttachment($attachmentsModule, $attachment, $legacyPath, $deleteLocal);
@@ -195,9 +197,16 @@ class ConsoleController extends Controller
                         throw new \RuntimeException('Migrated file is missing in MinIO: ' . $key);
                     }
                     if ($file->isImage() || $file->isVideo()) {
-                        $file->createPreviews(1380);
+                        $file->createPreviewsByWidths([1380]);
                     }
                 } catch (Throwable $exception) {
+
+                    $this->stderr(sprintf(
+                            "Создание в сторадж неуспешно #%s: %s\n",
+                            $attachment['id'],
+                            $exception->getMessage()
+                    ), Console::FG_RED);
+
                     $targetStorage->delete($file->getOriginalStorageKey());
                     $targetStorage->deleteVariants($file->filename);
                     $file->delete();

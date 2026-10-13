@@ -148,7 +148,7 @@ class FileBehaviour extends Behavior
             foreach ($validators as $key => $validator) {
 
                 // Сначала пробегаемся по файловым валидаторам
-                if ($validator::className() == 'yii\validators\FileValidator' || $validator::className() == 'floor12\files\components\ReformatValidator') {
+                if ($validator::class == 'yii\validators\FileValidator' || $validator::class == 'floor12\files\components\ReformatValidator') {
                     foreach ($this->attributes as $field => $params) {
 
                         if (is_string($params)) {
@@ -158,14 +158,14 @@ class FileBehaviour extends Behavior
 
                         $index = array_search($field, $validator->attributes);
                         if ($index !== false) {
-                            $this->attributes[$field]['validator'][$validator::className()] = $validator;
+                            $this->attributes[$field]['validator'][$validator::class] = $validator;
                             unset($validator->attributes[$index]);
                         }
                     }
                 }
 
 
-                if ($validator::className() == 'yii\validators\RequiredValidator') {
+                if ($validator::class == 'yii\validators\RequiredValidator') {
                     foreach ($this->attributes as $field => $params) {
 
                         if (is_string($params)) {
