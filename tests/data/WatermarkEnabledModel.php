@@ -16,11 +16,10 @@ class WatermarkEnabledModel extends ActiveRecord
         return [
             'files' => [
                 'class' => FileBehaviour::class,
+                'watermark' => '@app/data/graphic_alpha.png',
+                'apply_watermark' => false,
                 'attributes' => [
-                    'image' => [
-                        'apply_watermark' => true,
-                        'watermark' => '@app/data/graphic_alpha.png',
-                    ],
+                    'image' => ['apply_watermark' => true],
                     'plainImage' => [],
                 ],
             ],

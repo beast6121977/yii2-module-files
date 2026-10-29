@@ -19,6 +19,12 @@ class FileBehaviour extends Behavior
      */
     public $attributes = [];
 
+    /** @var string|null Watermark path shared by this behavior's file fields. */
+    public ?string $watermark = null;
+
+    /** @var bool Whether this behavior's file fields use the configured watermark by default. */
+    public bool $apply_watermark = false;
+
     /** Базовый класс для хранения в БД. Если указан, будет использоваться вместо className().
      *  Полезно когда backend и frontend модели наследуют один базовый класс.
      * @var string|null

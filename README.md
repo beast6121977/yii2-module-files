@@ -129,6 +129,24 @@ fields are defined here
           ...
 ```
 
+Watermark settings belong to `FileBehaviour`, not to the files module. Set the
+path on the behavior and enable application only for the fields that need it:
+
+```php
+'files' => [
+    'class' => 'floor12\files\components\FileBehaviour',
+    'watermark' => '@app/data/watermark.png',
+    'apply_watermark' => false,
+    'attributes' => [
+        'avatar' => ['apply_watermark' => true],
+        'documents',
+    ],
+],
+```
+
+Watermark application is disabled by default. The explicit field flag is
+required for preview generation.
+
 Use `ownerPrimaryKeyAttribute` only when the owner model primary key is stored in an attribute other than `id`.
 For example, if the primary key is `project_id`, pass `'ownerPrimaryKeyAttribute' => 'project_id'`.
 

@@ -602,12 +602,23 @@ class File extends ActiveRecord
     protected function getFieldConfig(): array
     {
         $behavior = $this->getFilesBehavior();
-        if (!$behavior || !array_key_exists($this->field, $behavior->attributes)) {
+        if (!$behavior) {
             return [];
         }
 
-        $config = $behavior->attributes[$this->field];
-        return is_array($config) ? $config : [];
+        $config = [
+            'watermark' => $behavior->watermark,
+            'apply_watermark' => $behavior->apply_watermark,
+        ];
+
+        if (array_key_exists($this->field, $behavior->attributes)) {
+            $fieldConfig = $behavior->attributes[$this->field];
+            if (is_array($fieldConfig)) {
+                $config = array_replace($config, $fieldConfig);
+            }
+        }
+
+        return $config;
     }
 
     protected function getPreviewExtension(bool $webp = false): string
@@ -822,8 +833,9 @@ class File extends ActiveRecord
                         $width,
                         false,
                         'image/jpeg',
-                        false,
-                        $this->filename
+                        $this->shouldApplyWatermark(),
+                        $this->filename,
+                        $this->getWatermarkPath()
                 );
                 $storage->generatePreview(
                         Image::load($sourcePath),
@@ -831,8 +843,9 @@ class File extends ActiveRecord
                         $width,
                         true,
                         'image/webp',
-                        false,
-                        $this->filename
+                        $this->shouldApplyWatermark(),
+                        $this->filename,
+                        $this->getWatermarkPath()
                 );
                 if (is_file($tmpPath)) {
                     unlink($tmpPath);
@@ -886,8 +899,9 @@ class File extends ActiveRecord
                     $widthForGenerate,
                     true,
                     'image/webp',
-                    false,
-                    $this->filename
+                    $this->shouldApplyWatermark(),
+                    $this->filename,
+                    $this->getWatermarkPath()
             );
         }
 
