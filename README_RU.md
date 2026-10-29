@@ -129,6 +129,25 @@ $ ./yii migrate --migrationPath=@vendor/floor12/yii2-module-files/src/migrations
          ...
 ```
 
+Настройки watermark находятся в `FileBehaviour`, а не в модуле файлов. Путь
+можно задать непосредственно при объявлении behavior, а применение включить
+только для нужных полей:
+
+```php
+'files' => [
+    'class' => 'floor12\files\components\FileBehaviour',
+    'watermark' => '@app/data/watermark.png',
+    'apply_watermark' => false,
+    'attributes' => [
+        'avatar' => ['apply_watermark' => true],
+        'documents',
+    ],
+],
+```
+
+По умолчанию watermark не накладывается: для генерации preview нужен явный
+флаг поля.
+
 Параметр `ownerPrimaryKeyAttribute` нужен только в тех случаях, когда ключ owner-модели хранится не в атрибуте `id`.
 Если primary key модели называется `project_id`, передайте `'ownerPrimaryKeyAttribute' => 'project_id'`.
 

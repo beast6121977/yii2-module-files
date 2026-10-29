@@ -68,14 +68,19 @@ abstract class AbstractStorage implements StorageInterface
         bool $is_webp = false,
         string $mimeType = 'image/jpeg',
         bool $apply_watermark = false,
-        ?string $logicalFilename = null
+        ?string $logicalFilename = null,
+        ?string $watermarkPath = null
     ): void
     {
         $this->module = \Yii::$app->getModule('files');
         $this->storage = $this->module->getStorage();
         $optimizer = ImageConfig::tryFrom($mimeType)?->config();
         $previewPath = $tmpPath;
-        $watermarked = $this->module->apply_watermark && $apply_watermark;
+        $watermarked = $apply_watermark;
+
+        if ($watermarked && (!$watermarkPath || !is_file($watermarkPath))) {
+            throw new ErrorException('Watermark file does not exist: ' . ($watermarkPath ?? ''));
+        }
 
         if ($watermarked) {
             $pathInfo = pathinfo($tmpPath);
@@ -95,11 +100,8 @@ abstract class AbstractStorage implements StorageInterface
         $image->format($is_webp ? 'webp' : 'jpg');
 
         if ($watermarked) {
-            if (!is_file($this->module->watermark)) {
-                throw new ErrorException('Watermark file does not exist: ' . $this->module->watermark);
-            }
             $image->watermark(
-                $this->module->watermark,
+                $watermarkPath,
                 AlignPosition::Center,
                 width: $image->getWidth(),
                 height: $image->getHeight(),

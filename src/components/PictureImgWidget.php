@@ -31,23 +31,24 @@ class PictureImgWidget extends Widget
      */
     public function run(): ?string
     {
-        if (!is_array($this->width))
+        if (!is_array($this->width)) {
             return null;
+        }
 
         $module = \Yii::$app->getModule('files');
         $this->storage = $module->getStorage();
 
-        $originalKey = 'originals'.DIRECTORY_SEPARATOR.basename($this->src);
+        $originalKey = 'originals' . DIRECTORY_SEPARATOR . basename($this->src);
         $type = $this->storage->mime($originalKey);
 
         $sourceWebp = $this->renderSource($this->width, 'image/webp');
         $sourceJpeg = $this->renderSource($this->width, $type);
         $image = ImgWidget::widget([
-            'src' => $this->src,
-            'width' => end($this->width),
-            'class' => $this->classImg,
-            'alt' => $this->alt,
-            'title' => $this->title,
+                'src' => $this->src,
+                'width' => end($this->width),
+                'class' => $this->classImg,
+                'alt' => $this->alt,
+                'title' => $this->title,
         ]);
 
         return Html::tag('picture', $sourceWebp . $sourceJpeg . $image, []);
@@ -59,13 +60,16 @@ class PictureImgWidget extends Widget
         $is_webp = $type == 'image/webp';
 
         foreach ($width as $widthMediaQuery => $widthValue) {
-            $url = $this->storage->publicUrl($this->storage->previewKey($this->src, $type, $widthValue, $is_webp));
-            $url2x = $this->storage->publicUrl($this->storage->previewKey($this->src, $type, $widthValue * 2, $is_webp));
+            $previewKey = $this->storage->previewKey($this->src, $type, $widthValue, $is_webp);
+            $url = ($this->storage->has($previewKey)) ? $this->storage->publicUrl($previewKey) : null;
 
-            $result .= (!empty($url) && !empty($url2x)) ? Html::tag('source', null, [
-                'type' => $type,
-                'media' => $widthMediaQuery,
-                'srcset' => "{$url} 1x, {$url2x} 2x",
+            $previewKey = $this->storage->previewKey($this->src, $type, ($widthValue * 2), $is_webp);
+            $url2x = ($this->storage->has($previewKey)) ? $this->storage->publicUrl($previewKey) : null;
+
+            $result .= ($url !== null && $url2x !== null) ? Html::tag('source', null, [
+                    'type' => $type,
+                    'media' => $widthMediaQuery,
+                    'srcset' => "{$url} 1x, {$url2x} 2x",
             ]) : null;
         }
 

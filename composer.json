@@ -4,19 +4,17 @@
   "type": "yii2-extension",
   "minimum-stability": "stable",
   "keywords": [
-    "floor12",
     "yii2 module",
     "files",
     "upload",
     "yii",
-    "yii2",
-    "yii 2"
+    "yii2"
   ],
   "license": "MIT",
   "authors": [
     {
-      "name": "floor12",
-      "email": "floor12@floor12.net",
+      "name": "Vitaly",
+      "email": "beast61292@gmail.com",
       "role": "Developer"
     }
   ],
