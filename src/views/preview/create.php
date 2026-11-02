@@ -10,11 +10,15 @@ use yii\widgets\ActiveForm;
 $this->title = 'Создать preview из оригинального изображения';
 ?>
 <div class="preview-create">
-    <?php $form = ActiveForm::begin(); ?>
-    <?= $form->errorSummary($model) ?>
-    <?= $form->field($model, 'originalKey')->textInput() ?>
-    <?= $form->field($model, 'width')->input('number', ['min' => 1, 'step' => 1]) ?>
-    <?= $form->field($model, 'applyWatermark')->checkbox() ?>
-    <?= Html::submitButton('Create preview', ['class' => 'btn btn-primary']) ?>
-    <?php ActiveForm::end(); ?>
+    <div class="row">
+        <div class="col-6">
+            <?php $form = ActiveForm::begin(); ?>
+            <?= $form->errorSummary($model) ?>
+            <?= $form->field($model, 'originalKey')->textInput() ?>
+            <?= $form->field($model, 'width')->input('number', ['min' => 1, 'step' => 1]) ?>
+            <?= $form->field($model, 'applyWatermark')->checkbox() ?>
+            <?= Html::submitButton('Создать preview', ['class' => 'btn btn-primary']) ?>
+            <?php ActiveForm::end(); ?>
+        </div>
+    </div>
 </div>
