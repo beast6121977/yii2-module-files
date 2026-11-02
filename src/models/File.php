@@ -415,6 +415,31 @@ class File extends ActiveRecord
         return (bool)($this->getFieldConfig()['apply_watermark'] ?? false);
     }
 
+    public function usesCanonicalImportPreviews(): bool
+    {
+        return Yii::$app->getModule('files')->storageDriver === 'minio'
+            && str_starts_with((string)$this->hash, 'media-v1:');
+    }
+
+    /** Canonical rebuilds use the same largest-effective-width policy as import. */
+    public function shouldApplyPreviewWatermark(int $width, int $originalWidth): bool
+    {
+        if (!$this->shouldApplyWatermark()) {
+            return false;
+        }
+        if (!$this->usesCanonicalImportPreviews()) {
+            return true;
+        }
+        $configured = getenv('IMAGE_PREVIEWS_WIDTH');
+        $configured = is_string($configured) && $configured !== ''
+            ? $configured : '32,64,80,440,600,660,880,1200';
+        $eligible = array_filter(
+            array_map('intval', explode(',', $configured)),
+            static fn(int $candidate): bool => $candidate > 0 && $candidate <= $originalWidth
+        );
+        return $eligible !== [] && $width === max($eligible);
+    }
+
     public function getWatermarkPath(): ?string
     {
         if (!$this->shouldApplyWatermark()) {
@@ -820,7 +845,7 @@ class File extends ActiveRecord
             $sourcePath = $framePath;
         }
 
-        if ($module->storageDriver === 'local') {
+        if ($module->storageDriver === 'local' || $this->usesCanonicalImportPreviews()) {
             if (!file_exists($sourcePath)) {
                 return;
             }
@@ -849,7 +874,7 @@ class File extends ActiveRecord
                         $width,
                         false,
                         'image/jpeg',
-                        $this->shouldApplyWatermark(),
+                        $this->shouldApplyPreviewWatermark($width, $originalWidth),
                         $this->filename,
                         $this->getWatermarkPath()
                 );
@@ -861,7 +886,7 @@ class File extends ActiveRecord
                         $width,
                         true,
                         'image/webp',
-                        $this->shouldApplyWatermark(),
+                        $this->shouldApplyPreviewWatermark($width, $originalWidth),
                         $this->filename,
                         $this->getWatermarkPath()
                 );
@@ -900,7 +925,7 @@ class File extends ActiveRecord
             throw new \LogicException('Only images');
         }
 
-        if ($module->storageDriver === 'local') {
+        if ($module->storageDriver === 'local' || $this->usesCanonicalImportPreviews()) {
             if (!file_exists($sourcePath)) {
                 return;
             }
@@ -920,7 +945,7 @@ class File extends ActiveRecord
                     $widthForGenerate,
                     true,
                     'image/webp',
-                    $this->shouldApplyWatermark(),
+                    $this->shouldApplyPreviewWatermark($widthForGenerate, $originalWidth),
                     $this->filename,
                     $this->getWatermarkPath()
             );

@@ -132,6 +132,28 @@ class ImagePreviewer
             return null;
         }
 
+        if ($this->model->usesCanonicalImportPreviews() && $storage instanceof \modules\files\storage\MinioStorage) {
+            $temporaryPath = tempnam(sys_get_temp_dir(), 'canonical-preview-');
+            if ($temporaryPath === false) {
+                throw new ErrorException('Unable to create canonical preview workspace.');
+            }
+            try {
+                $image = \Spatie\Image\Image::load($sourceImagePath);
+                $storage->generateImportPreview(
+                    $image, $temporaryPath, $this->width, $this->webp,
+                    $this->model->content_type,
+                    $this->model->shouldApplyPreviewWatermark($this->width, $image->getWidth()),
+                    $this->model->filename, $this->model->getWatermarkPath()
+                );
+                return $storage->publicUrl($storageKey)
+                    ?? $this->model->getStoragePreviewPath($this->width, $this->webp);
+            } finally {
+                if (is_file($temporaryPath)) {
+                    unlink($temporaryPath);
+                }
+            }
+        }
+
         if ($this->webp) {
             $ext = strtolower(pathinfo($sourceImagePath, PATHINFO_EXTENSION));
             $isTransparentSource = in_array($ext, ['webp', 'png'], true)
