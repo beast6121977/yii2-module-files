@@ -45,11 +45,15 @@ class File extends ActiveRecord
     private const WATERMARK_SIGNATURE_VERSION = 'v2';
 
 
+    #[\Override]
     public static function getDb()
     {
-        return Yii::$app->getModule('files')->db;
+        /** @var \modules\files\Module $module */
+        $module = Yii::$app->getModule('files');
+        return $module->db;
     }
 
+    #[\Override]
     public static function tableName()
     {
         return '{{%file_module}}';
@@ -60,6 +64,7 @@ class File extends ActiveRecord
      * @param bool $insert
      * @return bool
      */
+    #[\Override]
     public function beforeSave($insert)
     {
         if (!$this->hash) {
@@ -199,6 +204,7 @@ class File extends ActiveRecord
     }
 
 
+    #[\Override]
     public function rules()
     {
         return [
@@ -209,6 +215,7 @@ class File extends ActiveRecord
     }
 
 
+    #[\Override]
     public function attributeLabels()
     {
         return [
@@ -289,7 +296,11 @@ class File extends ActiveRecord
 
     public function getPreviewStorageKey(int $width, bool $webp): string
     {
-        return $this->getStorage()->previewKey($this->filename, $this->content_type, $width, $webp);
+        $storage = $this->getStorage();
+        if ($storage instanceof \modules\files\storage\MinioStorage) {
+            return $storage->previewKeyForRecord($this->filename, $this->content_type, $width, $webp, (string)$this->hash);
+        }
+        return $storage->previewKey($this->filename, $this->content_type, $width, $webp);
     }
 
     public function getStoragePreviewPath(int $width, bool $webp): string
@@ -353,6 +364,7 @@ class File extends ActiveRecord
      * Delete files from disk
      */
 
+    #[\Override]
     public function afterDelete()
     {
         $this->deleteFiles();
@@ -374,7 +386,9 @@ class File extends ActiveRecord
 
         $module = Yii::$app->getModule('files');
         $extension = pathinfo($this->rootPath, PATHINFO_EXTENSION);
-        array_map('unlink', glob(str_replace(".{$extension}", '*', $this->rootPath)));
+        foreach (glob(str_replace(".{$extension}", '*', $this->rootPath)) ?: [] as $path) {
+            unlink($path);
+        }
 
         $this->getStorage()->deleteVariants($this->filename);
 
@@ -488,8 +502,7 @@ class File extends ActiveRecord
             throw new ErrorException('File hash is empty and preview URL cannot be generated.');
         }
 
-        $width = max(0, (int)$width);
-        $webp = (bool)$webp;
+        $width = max(0, $width);
 
         if (Yii::$app->getModule('files')->hostStatic) {
             return
@@ -780,6 +793,7 @@ class File extends ActiveRecord
         }
 
         $module = \Yii::$app->getModule('files');
+        /** @var \modules\files\storage\AbstractStorage $storage */
         $storage = $this->getStorage();
         $originalWidth = 2500;
 
@@ -827,7 +841,9 @@ class File extends ActiveRecord
 
             if ($width < $originalWidth) {
                 $tmpPath = $storage->getTmpPath($this->filename);
-                $storage->generatePreview(
+                $previewMethod = $storage instanceof \modules\files\storage\MinioStorage && str_starts_with((string)$this->hash, 'media-v1:')
+                    ? 'generateImportPreview' : 'generatePreview';
+                $storage->$previewMethod(
                         Image::load($sourcePath),
                         $tmpPath,
                         $width,
@@ -837,7 +853,9 @@ class File extends ActiveRecord
                         $this->filename,
                         $this->getWatermarkPath()
                 );
-                $storage->generatePreview(
+                $previewMethod = $storage instanceof \modules\files\storage\MinioStorage && str_starts_with((string)$this->hash, 'media-v1:')
+                    ? 'generateImportPreview' : 'generatePreview';
+                $storage->$previewMethod(
                         Image::load($sourcePath),
                         $tmpPath,
                         $width,
@@ -872,6 +890,7 @@ class File extends ActiveRecord
         }
 
         $module = \Yii::$app->getModule('files');
+        /** @var \modules\files\storage\AbstractStorage $storage */
         $storage = $this->getStorage();
         $originalWidth = 2500;
 
@@ -893,7 +912,9 @@ class File extends ActiveRecord
 
         foreach ($widths as $width) {
             $widthForGenerate = min($width, $originalWidth);
-            $storage->generatePreview(
+            $previewMethod = $storage instanceof \modules\files\storage\MinioStorage && str_starts_with((string)$this->hash, 'media-v1:')
+                ? 'generateImportPreview' : 'generatePreview';
+            $storage->$previewMethod(
                     Image::load($sourcePath),
                     $tmpPath,
                     $widthForGenerate,
