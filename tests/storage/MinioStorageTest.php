@@ -86,6 +86,25 @@ final class MinioStorageTest extends TestCase
         $storage->sourceHash('originals/a.png');
     }
 
+    public function testHasReturnsFalseForMissingObject(): void
+    {
+        $command = new \Aws\Command('HeadObject');
+        $error = new \Aws\S3\Exception\S3Exception('Missing', $command, ['response' => new \GuzzleHttp\Psr7\Response(404)]);
+        $storage = new MinioStorage($this->clientWithHandler(new MockHandler([$error])), 'products', $this->tempDirectory);
+
+        self::assertFalse($storage->has('originals/a.png'));
+    }
+
+    public function testHasDoesNotTreatAuthorizationFailureAsMissingObject(): void
+    {
+        $command = new \Aws\Command('HeadObject');
+        $error = new \Aws\S3\Exception\S3Exception('Denied', $command, ['response' => new \GuzzleHttp\Psr7\Response(403)]);
+        $storage = new MinioStorage($this->clientWithHandler(new MockHandler([$error])), 'products', $this->tempDirectory);
+
+        $this->expectException(StorageException::class);
+        $storage->has('originals/a.png');
+    }
+
     public function testWriteMetricsCountSuccessfulObjectWrites(): void
     {
         $storage = new MinioStorage($this->clientWithHandler(new MockHandler([new Result([])])), 'products', $this->tempDirectory);

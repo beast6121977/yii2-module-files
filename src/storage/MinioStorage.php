@@ -3,6 +3,7 @@
 namespace modules\files\storage;
 
 use Aws\S3\S3Client;
+use Aws\S3\Exception\S3Exception;
 use Throwable;
 
 final class MinioStorage extends AbstractStorage implements StorageInterface
@@ -58,8 +59,14 @@ final class MinioStorage extends AbstractStorage implements StorageInterface
             ]);
 
             return true;
+        } catch (S3Exception $exception) {
+            if ($exception->getStatusCode() === 404) {
+                return false;
+            }
+
+            throw new StorageException('Unable to check MinIO object.', 0, $exception);
         } catch (Throwable $exception) {
-            return false;
+            throw new StorageException('Unable to check MinIO object.', 0, $exception);
         }
     }
 
