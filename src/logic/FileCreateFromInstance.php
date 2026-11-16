@@ -53,6 +53,13 @@ class FileCreateFromInstance
         if (isset($data['scenario']))
             $this->_owner->setScenario($data['scenario']);
 
+        if ($this->maxWidth === null) {
+            $previewWidths = $this->_owner->behaviors['files']->attributes[$this->_attribute]['previewWidths'] ?? null;
+            if (is_array($previewWidths)) {
+                $this->maxWidth = array_map('intval', $previewWidths);
+            }
+        }
+
         if (isset($this->_owner->behaviors['files']->attributes[$this->_attribute]['validator'])) {
             foreach ($this->_owner->behaviors['files']->attributes[$this->_attribute]['validator'] as $validator) {
                 if ($validator->maxFiles && (int)$data['count'] > $validator->maxFiles) {

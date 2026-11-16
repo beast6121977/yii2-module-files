@@ -31,12 +31,13 @@ class ImgWidget extends Widget
         $module = \Yii::$app->getModule('files');
         $storage = $module->getStorage();
         $src = '/img/no-photo.svg';
-        $previewKey = $storage->previewKey($this->src, 'image/webp', $this->width, true);
+        $fileName = basename($this->src);
 
+        $previewKey = $storage->previewKey($fileName, 'image/webp', $this->width, true);
         if ($storage->has($previewKey)) {
             $src = $storage->publicUrl($previewKey);
         } else {
-            $originalKey = 'originals' . DIRECTORY_SEPARATOR . basename($this->src);
+            $originalKey = 'originals' . DIRECTORY_SEPARATOR . $fileName;
 
             if ($storage->has($originalKey)) {
                 $type = $storage->mime($originalKey);

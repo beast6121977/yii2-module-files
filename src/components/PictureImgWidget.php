@@ -39,19 +39,24 @@ class PictureImgWidget extends Widget
         $this->storage = $module->getStorage();
 
         $originalKey = 'originals' . DIRECTORY_SEPARATOR . basename($this->src);
-        $type = $this->storage->mime($originalKey);
 
-        $sourceWebp = $this->renderSource($this->width, 'image/webp');
-        $sourceJpeg = $this->renderSource($this->width, $type);
-        $image = ImgWidget::widget([
-                'src' => $this->src,
-                'width' => end($this->width),
-                'class' => $this->classImg,
-                'alt' => $this->alt,
-                'title' => $this->title,
-        ]);
+        if ($this->storage->has($originalKey)) {
+            $type = $this->storage->mime($originalKey);
 
-        return Html::tag('picture', $sourceWebp . $sourceJpeg . $image, []);
+            $sourceWebp = $this->renderSource($this->width, 'image/webp');
+            $sourceJpeg = $this->renderSource($this->width, $type);
+            $image = ImgWidget::widget([
+                    'src' => $this->src,
+                    'width' => end($this->width),
+                    'class' => $this->classImg,
+                    'alt' => $this->alt,
+                    'title' => $this->title,
+            ]);
+
+            return Html::tag('picture', $sourceWebp . $sourceJpeg . $image, []);
+        }
+
+        return null;
     }
 
     private function renderSource(array $width, $type): string
