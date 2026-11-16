@@ -154,7 +154,7 @@ class LocalStorage extends AbstractStorage implements StorageInterface
 
     public function originalKey(string $filename, string $type = ''): string
     {
-        return 'originals/' . $this->normalizeKey($filename);
+        return StorageKey::original($filename);
     }
 
     public function publicUrl(string $key): ?string

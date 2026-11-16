@@ -167,10 +167,7 @@ final class MinioStorage extends AbstractStorage implements StorageInterface
 
     public function importPreviewKey(string $filename, string $type, int $width, bool $webp): string
     {
-        if ($width <= 0) {
-            throw new StorageException('Preview width must be positive.');
-        }
-        return 'previews/' . $this->normalizeKey($filename) . '/' . $width . ($webp ? '.webp' : '.jpg');
+        return StorageKey::importPreview($filename, $width, $webp);
     }
 
     /** Generate an import variant using canonical keys without changing legacy uploads. */

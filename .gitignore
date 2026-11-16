@@ -11,3 +11,8 @@ tests/_output/*
 composer.lock
 assets/.sass-cache
 /.codex
+mcp-server.log
+.phpunit.result.cache
+tests/sqlite.db
+
+docs/superpowers/plans/2026-11-16-unify-storage-keys.md
