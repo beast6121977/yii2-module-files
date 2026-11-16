@@ -966,4 +966,13 @@ class File extends ActiveRecord
         $module = \Yii::$app->getModule('files');
         return $module->hostStatic . DIRECTORY_SEPARATOR . $this->getPreviewStorageKey($width, $webp);
     }
+
+    public function getOriginalPublicUrl()
+    {
+        $storage = $this->getStorage();
+        $originalKey =  $storage->originalKey(basename($this->filename), '');
+        return $storage->publicUrl($originalKey);
+    }
+
+
 }
