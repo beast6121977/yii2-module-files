@@ -107,9 +107,11 @@ class ImagePreviewer
         $storage = $this->model->getStorage();
         $storageKey = $this->model->getPreviewStorageKey($this->width, $this->webp);
 
-        if ($storage->has($storageKey)) {
-            return $storage->publicUrl($storageKey)
-                ?? $this->model->getStoragePreviewPath($this->width, $this->webp);
+        foreach ($this->model->getPreviewStorageKeys($this->width, $this->webp) as $candidateKey) {
+            if ($storage->has($candidateKey)) {
+                return $storage->publicUrl($candidateKey)
+                    ?? $this->model->getStoragePreviewPathForKey($candidateKey);
+            }
         }
 
         $cachePath = rtrim(Yii::$app->getModule('files')->cacheFullPath, DIRECTORY_SEPARATOR);

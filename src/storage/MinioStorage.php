@@ -207,12 +207,23 @@ final class MinioStorage extends AbstractStorage implements StorageInterface
         );
     }
 
-    /** Keep URLs for existing records without adding HEAD requests to API reads. */
+    /** Return the preferred preview key while preserving the old public method. */
     public function previewKeyForRecord(string $filename, string $type, int $width, bool $webp, string $hash): string
     {
-        return str_starts_with($hash, 'media-v1:')
+        return $this->previewKeysForRecord($filename, $type, $width, $webp, $hash)[0];
+    }
+
+    /** @return list<string> Preferred key followed by the legacy alternative. */
+    public function previewKeysForRecord(string $filename, string $type, int $width, bool $webp, string $hash): array
+    {
+        $preferred = str_starts_with($hash, 'media-v1:')
             ? $this->importPreviewKey($filename, $type, $width, $webp)
             : parent::previewKey($filename, $type, $width, $webp);
+        $alternative = str_starts_with($hash, 'media-v1:')
+            ? parent::previewKey($filename, $type, $width, $webp)
+            : $this->importPreviewKey($filename, $type, $width, $webp);
+
+        return array_values(array_unique([$preferred, $alternative]));
     }
 
     #[\Override]

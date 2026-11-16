@@ -298,14 +298,32 @@ class File extends ActiveRecord
     {
         $storage = $this->getStorage();
         if ($storage instanceof \modules\files\storage\MinioStorage) {
-            return $storage->previewKeyForRecord($this->filename, $this->content_type, $width, $webp, (string)$this->hash);
+            return $storage->previewKeysForRecord($this->filename, $this->content_type, $width, $webp, (string)$this->hash)[0];
         }
         return $storage->previewKey($this->filename, $this->content_type, $width, $webp);
     }
 
+    /** @return list<string> Preferred preview key followed by legacy alternatives. */
+    public function getPreviewStorageKeys(int $width, bool $webp): array
+    {
+        $storage = $this->getStorage();
+        if ($storage instanceof \modules\files\storage\MinioStorage) {
+            return $storage->previewKeysForRecord(
+                $this->filename, $this->content_type, $width, $webp, (string)$this->hash
+            );
+        }
+
+        return [$storage->previewKey($this->filename, $this->content_type, $width, $webp)];
+    }
+
     public function getStoragePreviewPath(int $width, bool $webp): string
     {
-        return $this->getMaterializedStoragePath($this->getPreviewStorageKey($width, $webp), false);
+        return $this->getStoragePreviewPathForKey($this->getPreviewStorageKey($width, $webp));
+    }
+
+    public function getStoragePreviewPathForKey(string $key): string
+    {
+        return $this->getMaterializedStoragePath($key, false);
     }
 
 
@@ -329,15 +347,17 @@ class File extends ActiveRecord
     public function getHrefPreview(int $width, bool $webp = false)
     {
         if ($this->usesMinioStorage()) {
-            $key = $this->getPreviewStorageKey($width, $webp);
-
-            if ($this->getStorage()->has($key)) {
-                $publicUrl = $this->getStorage()->publicUrl($this->getPreviewStorageKey($width, $webp));
-                if ($publicUrl !== null) {
-                    return $publicUrl;
+            foreach ($this->getPreviewStorageKeys($width, $webp) as $key) {
+                if ($this->getStorage()->has($key)) {
+                    $publicUrl = $this->getStorage()->publicUrl($key);
+                    if ($publicUrl !== null) {
+                        return $publicUrl;
+                    }
                 }
-            } elseif ($webp === true) {
-                $this->getHrefPreview($width, false);
+            }
+
+            if ($webp === true) {
+                return $this->getHrefPreview($width, false);
             }
 
             return '/img/no-photo.svg';
